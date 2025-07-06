@@ -1,6 +1,7 @@
 package com.example.bottlenex;
 
 import android.Manifest;
+import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.location.Location;
 import android.os.Bundle;
@@ -16,7 +17,9 @@ import androidx.core.content.ContextCompat;
 
 import com.example.bottlenex.databinding.ActivityMainBinding;
 import com.example.bottlenex.map.MapManager;
+import com.example.bottlenex.services.FirebaseService;
 import com.google.android.material.button.MaterialButton;
+import com.google.firebase.auth.FirebaseUser;
 
 import org.osmdroid.util.GeoPoint;
 
@@ -42,13 +45,20 @@ public class MainActivity extends AppCompatActivity implements
     @Inject
     MapManager mapManager;
     
+    @Inject
+    FirebaseService firebaseService;
+    
     private GeoPoint selectedLocation;
+    private FirebaseUser currentUser;
     
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         binding = ActivityMainBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
+        
+        // Initialize Firebase authentication
+        initializeFirebaseAuth();
         
         // Setup map
         mapManager.setupMap(binding.mapView);
@@ -66,6 +76,20 @@ public class MainActivity extends AppCompatActivity implements
         }
     }
     
+    private void initializeFirebaseAuth() {
+        currentUser = firebaseService.getCurrentUser();
+        if (currentUser == null) {
+            // Sign in anonymously
+            firebaseService.signInAnonymously(task -> {
+                if (task.isSuccessful()) {
+                    currentUser = task.getResult().getUser();
+                } else {
+                    Toast.makeText(this, "Failed to initialize user", Toast.LENGTH_SHORT).show();
+                }
+            });
+        }
+    }
+    
     private void setupUI() {
         // Setup toolbar
         setSupportActionBar(binding.toolbar);
@@ -78,6 +102,10 @@ public class MainActivity extends AppCompatActivity implements
         // Setup navigation buttons
         binding.btnSearch.setOnClickListener(v -> onSearchClicked());
         binding.btnNavigate.setOnClickListener(v -> onNavigateClicked());
+        binding.btnSettings.setOnClickListener(v -> onSettingsClicked());
+        binding.btnBugReport.setOnClickListener(v -> {
+            startActivity(new Intent(this, BugReportActivity.class));
+        });
     }
     
     private boolean checkPermissions() {
@@ -146,6 +174,18 @@ public class MainActivity extends AppCompatActivity implements
                     location.getLatitude(), location.getLongitude());
             binding.locationInfo.setText(locationText);
         }
+        
+        // Save location to Firebase if user is authenticated
+        if (currentUser != null) {
+            firebaseService.saveUserLocation(
+                currentUser.getUid(),
+                location.getLatitude(),
+                location.getLongitude(),
+                aVoid -> {
+                    // Location saved successfully
+                }
+            );
+        }
     }
     
     private void onSearchClicked() {
@@ -160,6 +200,11 @@ public class MainActivity extends AppCompatActivity implements
         } else {
             Toast.makeText(this, "Please select a location on the map first", Toast.LENGTH_SHORT).show();
         }
+    }
+    
+    private void onSettingsClicked() {
+        // TODO: Implement settings functionality
+        Toast.makeText(this, "Settings coming soon!", Toast.LENGTH_SHORT).show();
     }
     
     @Override

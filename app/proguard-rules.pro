@@ -73,3 +73,29 @@
 -keep class org.osmdroid.api.** { *; }
 -keep class org.osmdroid.tileprovider.** { *; }
 -keep class org.osmdroid.config.** { *; }
+
+# Firebase
+-keep class com.google.firebase.** { *; }
+-keep class com.google.android.gms.** { *; }
+-dontwarn com.google.firebase.**
+-dontwarn com.google.android.gms.**
+
+# Firebase Firestore
+-keep class com.google.firebase.firestore.** { *; }
+-keepclassmembers class com.google.firebase.firestore.** { *; }
+
+# Firebase Auth
+-keep class com.google.firebase.auth.** { *; }
+-keepclassmembers class com.google.firebase.auth.** { *; }
+
+# Firebase Storage
+-keep class com.google.firebase.storage.** { *; }
+-keepclassmembers class com.google.firebase.storage.** { *; }
+
+# Firebase Analytics
+-keep class com.google.firebase.analytics.** { *; }
+-keepclassmembers class com.google.firebase.analytics.** { *; }
+
+# Firebase Crashlytics
+-keep class com.google.firebase.crashlytics.** { *; }
+-keepclassmembers class com.google.firebase.crashlytics.** { *; }

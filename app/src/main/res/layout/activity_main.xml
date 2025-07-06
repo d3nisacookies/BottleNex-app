@@ -110,7 +110,8 @@
                 android:layout_height="wrap_content"
                 android:layout_marginEnd="8dp"
                 android:layout_weight="1"
-                android:text="Search" />
+                android:text="Search"
+                android:textSize="18sp" />
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btnNavigate"
@@ -118,9 +119,32 @@
                 android:layout_height="wrap_content"
                 android:layout_marginStart="8dp"
                 android:layout_weight="1"
-                android:text="Navigate" />
+                android:text="Navigate"
+                android:textSize="18sp" />
 
         </LinearLayout>
+
+        <!-- New Settings Button -->
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnSettings"
+            style="@style/Widget.Material3.Button.TextButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:layout_marginTop="8dp"
+            android:text="Settings"
+            android:textSize="18sp" />
+
+        <!-- Report a Bug Button -->
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnBugReport"
+            style="@style/Widget.Material3.Button.TextButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:layout_marginTop="8dp"
+            android:text="Report a Bug"
+            android:textSize="18sp" />
 
     </LinearLayout>
 

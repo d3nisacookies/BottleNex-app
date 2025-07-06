@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "403269302904",
+    "project_id": "bottlenex-43fa5",
+    "storage_bucket": "bottlenex-43fa5.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:403269302904:android:705c182e1c9e5799f0cb8d",
+        "android_client_info": {
+          "package_name": "com.example.bottlenex"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAJ1PDtZR9XSjlPGCg0G413gCqboYETzGs"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:403269302904:android:e378ad4ff17cb86cf0cb8d",
+        "android_client_info": {
+          "package_name": "com.example.bottlenex.debug"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAJ1PDtZR9XSjlPGCg0G413gCqboYETzGs"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

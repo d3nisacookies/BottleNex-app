@@ -1,6 +1,8 @@
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.hilt)
+    alias(libs.plugins.gms.google.services)
+    alias(libs.plugins.crashlytics)
 }
 
 android {
@@ -50,6 +52,9 @@ android {
 }
 
 dependencies {
+    // Firebase BoM for version management
+    implementation(platform(libs.firebase.bom))
+    
     // Core Android dependencies
     implementation(libs.core)
     implementation(libs.appcompat)
@@ -97,4 +102,11 @@ dependencies {
     testImplementation(libs.junit)
     androidTestImplementation(libs.ext.junit)
     androidTestImplementation(libs.espresso.core)
+
+    // Firebase dependencies (versions managed by BoM)
+    implementation(libs.firebase.firestore)
+    implementation(libs.firebase.analytics)
+    implementation(libs.firebase.auth)
+    implementation(libs.firebase.storage)
+    implementation(libs.firebase.crashlytics)
 }

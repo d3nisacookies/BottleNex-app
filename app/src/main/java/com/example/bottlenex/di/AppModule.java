@@ -3,6 +3,8 @@ package com.example.bottlenex.di;
 import android.content.Context;
 
 import com.example.bottlenex.map.MapManager;
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.firestore.FirebaseFirestore;
 
 import dagger.Module;
 import dagger.Provides;
@@ -20,5 +22,17 @@ public class AppModule {
     @Singleton
     public MapManager provideMapManager(@ApplicationContext Context context) {
         return new MapManager(context);
+    }
+    
+    @Provides
+    @Singleton
+    public FirebaseFirestore provideFirebaseFirestore() {
+        return FirebaseFirestore.getInstance();
+    }
+    
+    @Provides
+    @Singleton
+    public FirebaseAuth provideFirebaseAuth() {
+        return FirebaseAuth.getInstance();
     }
 } 
