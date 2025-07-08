@@ -5,12 +5,12 @@
     <!-- Permissions -->
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
-    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" 
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"
         android:maxSdkVersion="28" />
-    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" 
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"
         android:maxSdkVersion="32" />
     <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
-    
+
     <!-- Location permissions for navigation -->
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
@@ -28,7 +28,7 @@
         android:theme="@style/Theme.BottleNex"
         android:usesCleartextTraffic="true"
         tools:targetApi="31">
-        
+
         <activity
             android:name=".MainActivity"
             android:exported="true"
@@ -38,9 +38,25 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-        
+
         <activity android:name=".BugReportActivity" />
-        
+
+        <activity
+            android:name=".HomeActivity"
+            android:exported="true"
+            android:theme="@style/Theme.BottleNex" />
+        <activity android:name=".OfflineMapsActivity" />
+        <activity android:name=".RouteHistoryActivity" />
+        <activity android:name=".FeedbackActivity" />
+
+        <activity android:name=".SavedPlacesActivity" />
+        <activity android:name=".StarredPlacesActivity" />
+        <activity android:name=".SavedTripsActivity" />
+        <activity android:name=".ToGoPlacesActivity" />
+        <activity android:name=".FavoritesActivity" />
+
+
+
     </application>
 
 </manifest>
