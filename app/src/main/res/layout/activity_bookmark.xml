@@ -4,13 +4,26 @@
     android:orientation="vertical"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#2196F3">
+    android:background="#2196F3"
+    android:padding="16dp">
 
-    <!-- Top spacer: about 15% height -->
+    <!-- Top spacer: about 10% height -->
     <View
         android:layout_width="match_parent"
         android:layout_height="0dp"
-        android:layout_weight="0.15" />
+        android:layout_weight="0.10" />
+
+    <!-- Heading aligned to the left -->
+    <TextView
+        android:id="@+id/tvHeading"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Bookmark"
+        android:gravity="start"
+        android:textColor="@android:color/white"
+        android:textSize="24sp"
+        android:textStyle="bold"
+        android:paddingBottom="12dp" />
 
     <!-- Button 1 -->
     <Button

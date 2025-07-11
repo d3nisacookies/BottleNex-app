@@ -30,23 +30,23 @@ import javax.inject.Singleton;
 
 @Singleton
 public class MapManager {
-    
+
     private static final String TAG = "MapManager";
     private static final int DEFAULT_ZOOM = 15;
     private static final double DEFAULT_LAT = 37.7749; // San Francisco
     private static final double DEFAULT_LON = -122.4194;
-    
+
     private final Context context;
     private MapView mapView;
     private IMapController mapController;
     private MyLocationNewOverlay myLocationOverlay;
     private LocationManager locationManager;
     private LocationListener locationListener;
-    
+
     private final List<Marker> markers = new ArrayList<>();
     private OnMapClickListener onMapClickListener;
     private OnLocationUpdateListener onLocationUpdateListener;
-    
+
     @Inject
     public MapManager(Context context) {
         this.context = context;
@@ -56,7 +56,7 @@ public class MapManager {
             Log.e(TAG, "Error initializing OSMDroid", e);
         }
     }
-    
+
     private void initializeOSMDroid() {
         try {
             // Set user agent to prevent getting banned from the OSM servers
@@ -65,40 +65,40 @@ public class MapManager {
             Log.e(TAG, "Error setting user agent", e);
         }
     }
-    
+
     public void setupMap(MapView mapView) {
         try {
             this.mapView = mapView;
-            
+
             if (mapView == null) {
                 Log.e(TAG, "MapView is null");
                 return;
             }
-            
+
             // Set tile source
             mapView.setTileSource(TileSourceFactory.MAPNIK);
-            
+
             // Enable multi-touch gestures
             mapView.setMultiTouchControls(true);
-            
+
             // Get map controller
             mapController = mapView.getController();
-            
+
             // Set initial position and zoom
             mapController.setZoom(DEFAULT_ZOOM);
             mapController.setCenter(new GeoPoint(DEFAULT_LAT, DEFAULT_LON));
-            
+
             // Setup location overlay
             setupLocationOverlay();
-            
+
             // Setup map click listener
             setupMapClickListener();
-            
+
         } catch (Exception e) {
             Log.e(TAG, "Error setting up map", e);
         }
     }
-    
+
     private void setupLocationOverlay() {
         try {
             myLocationOverlay = new MyLocationNewOverlay(new GpsMyLocationProvider(context), mapView);
@@ -108,7 +108,7 @@ public class MapManager {
             Log.e(TAG, "Error setting up location overlay", e);
         }
     }
-    
+
     private void setupMapClickListener() {
         try {
             mapView.getOverlays().add(new org.osmdroid.views.overlay.Overlay() {
@@ -131,15 +131,15 @@ public class MapManager {
             Log.e(TAG, "Error setting up map click listener", e);
         }
     }
-    
+
     public void startLocationUpdates() {
         try {
-            if (ActivityCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) 
+            if (ActivityCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION)
                     != PackageManager.PERMISSION_GRANTED) {
                 Toast.makeText(context, "Location permission required", Toast.LENGTH_SHORT).show();
                 return;
             }
-            
+
             locationManager = (LocationManager) context.getSystemService(Context.LOCATION_SERVICE);
             locationListener = new LocationListener() {
                 @Override
@@ -148,17 +148,17 @@ public class MapManager {
                         onLocationUpdateListener.onLocationUpdate(location);
                     }
                 }
-                
+
                 @Override
                 public void onStatusChanged(String provider, int status, Bundle extras) {}
-                
+
                 @Override
                 public void onProviderEnabled(String provider) {}
-                
+
                 @Override
                 public void onProviderDisabled(String provider) {}
             };
-            
+
             locationManager.requestLocationUpdates(
                     LocationManager.GPS_PROVIDER,
                     5000, // 5 seconds
@@ -169,7 +169,7 @@ public class MapManager {
             Log.e(TAG, "Error starting location updates", e);
         }
     }
-    
+
     public void stopLocationUpdates() {
         try {
             if (locationManager != null && locationListener != null) {
@@ -179,7 +179,7 @@ public class MapManager {
             Log.e(TAG, "Error stopping location updates", e);
         }
     }
-    
+
     public void zoomIn() {
         try {
             if (mapController != null) {
@@ -189,7 +189,7 @@ public class MapManager {
             Log.e(TAG, "Error zooming in", e);
         }
     }
-    
+
     public void zoomOut() {
         try {
             if (mapController != null) {
@@ -199,7 +199,7 @@ public class MapManager {
             Log.e(TAG, "Error zooming out", e);
         }
     }
-    
+
     public void centerOnMyLocation() {
         try {
             if (myLocationOverlay != null && myLocationOverlay.getMyLocation() != null) {
@@ -209,7 +209,7 @@ public class MapManager {
             Log.e(TAG, "Error centering on location", e);
         }
     }
-    
+
     public void addMarker(GeoPoint point, String title) {
         try {
             if (mapView != null) {
@@ -225,7 +225,7 @@ public class MapManager {
             Log.e(TAG, "Error adding marker", e);
         }
     }
-    
+
     public void clearMarkers() {
         try {
             if (mapView != null) {
@@ -239,15 +239,15 @@ public class MapManager {
             Log.e(TAG, "Error clearing markers", e);
         }
     }
-    
+
     public void setOnMapClickListener(OnMapClickListener listener) {
         this.onMapClickListener = listener;
     }
-    
+
     public void setOnLocationUpdateListener(OnLocationUpdateListener listener) {
         this.onLocationUpdateListener = listener;
     }
-    
+
     public void onResume() {
         try {
             if (mapView != null) {
@@ -257,7 +257,7 @@ public class MapManager {
             Log.e(TAG, "Error resuming map", e);
         }
     }
-    
+
     public void onPause() {
         try {
             if (mapView != null) {
@@ -267,12 +267,20 @@ public class MapManager {
             Log.e(TAG, "Error pausing map", e);
         }
     }
-    
+
+    // <-- Add this method to expose zoom level -->
+    public double getZoomLevel() {
+        if (mapView != null) {
+            return mapView.getZoomLevelDouble();
+        }
+        return 0;
+    }
+
     public interface OnMapClickListener {
         void onMapClick(GeoPoint point);
     }
-    
+
     public interface OnLocationUpdateListener {
         void onLocationUpdate(Location location);
     }
-} 
+}

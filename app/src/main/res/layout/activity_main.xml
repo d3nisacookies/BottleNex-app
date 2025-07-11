@@ -49,19 +49,16 @@
                 android:layout_gravity="start|center_vertical"
                 android:padding="6dp" />
 
-            <!-- Search Text -->
-            <TextView
-                android:id="@+id/searchText"
+            <!-- SEARCH VIEW replacing old TextView -->
+            <SearchView
+                android:id="@+id/searchView"
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
-                android:gravity="center_vertical"
-                android:text="Search"
-                android:textColor="#888888"
-                android:textSize="16sp"
+                android:queryHint="Search location"
+                android:iconifiedByDefault="false"
                 android:paddingStart="44dp"
                 android:paddingEnd="44dp"
-                android:clickable="true"
-                android:focusable="true" />
+                android:background="@android:color/transparent" />
 
             <!-- Right Mic Icon Button -->
             <ImageButton
@@ -165,9 +162,6 @@
                 android:textSize="18sp" />
         </LinearLayout>
 
-
-
-
         <!-- Bottom bar buttons row -->
         <LinearLayout
             android:layout_width="match_parent"
@@ -177,7 +171,7 @@
             android:layout_marginTop="16dp">
 
             <ImageButton
-                android:id="@+id/btncar"
+                android:id="@+id/btnNavigation"
                 android:layout_width="0dp"
                 android:layout_height="match_parent"
                 android:layout_weight="1"
@@ -186,7 +180,7 @@
                 android:background="@android:color/transparent" />
 
             <ImageButton
-                android:id="@+id/btnSearc"
+                android:id="@+id/btnBookmark"
                 android:layout_width="0dp"
                 android:layout_height="match_parent"
                 android:layout_weight="1"
@@ -195,7 +189,7 @@
                 android:background="@android:color/transparent" />
 
             <ImageButton
-                android:id="@+id/btnProfile"
+                android:id="@+id/btnCar"
                 android:layout_width="0dp"
                 android:layout_height="match_parent"
                 android:layout_weight="1"
@@ -204,7 +198,7 @@
                 android:background="@android:color/transparent" />
 
             <ImageButton
-                android:id="@+id/btnHome"
+                android:id="@+id/btnPersonalTools"
                 android:layout_width="0dp"
                 android:layout_height="match_parent"
                 android:layout_weight="1"

@@ -6,13 +6,25 @@
     android:layout_height="match_parent"
     android:background="#2196F3">
 
-    <!-- Top guideline at 15% from top -->
     <androidx.constraintlayout.widget.Guideline
         android:id="@+id/guidelineTop"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
-        app:layout_constraintGuide_percent="0.15" />
+        app:layout_constraintGuide_percent="0.10" />
+
+    <TextView
+        android:id="@+id/tvHeading"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Personal Tools"
+        android:textColor="#000000"
+        android:textSize="28sp"
+        android:textStyle="bold"
+        app:layout_constraintTop_toBottomOf="@id/guidelineTop"
+        app:layout_constraintStart_toStartOf="parent"
+        android:layout_marginStart="16dp"
+        android:layout_marginTop="4dp" />
 
     <!-- Button 1 -->
     <Button
@@ -23,12 +35,12 @@
         android:textSize="18sp"
         android:textColor="@android:color/white"
         android:backgroundTint="@android:color/holo_blue_dark"
-        app:layout_constraintTop_toBottomOf="@id/guidelineTop"
+        app:layout_constraintTop_toBottomOf="@id/tvHeading"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintHeight_percent="0.15" />
 
-    <!-- Divider 1 (black) -->
+    <!-- Divider 1 -->
     <View
         android:id="@+id/divider1"
         android:layout_width="0dp"
@@ -52,7 +64,7 @@
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintHeight_percent="0.15" />
 
-    <!-- Divider 2 (black) -->
+    <!-- Divider 2 -->
     <View
         android:id="@+id/divider2"
         android:layout_width="0dp"
@@ -76,7 +88,7 @@
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintHeight_percent="0.15" />
 
-    <!-- Divider 3 (black) -->
+    <!-- Divider 3 -->
     <View
         android:id="@+id/divider3"
         android:layout_width="0dp"
