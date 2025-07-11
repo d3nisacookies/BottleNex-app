@@ -31,6 +31,7 @@ public class PersonalTools extends AppCompatActivity {
 
         btnReportBug.setOnClickListener(v -> {
             startActivity(new Intent(PersonalTools.this, BugReportActivity.class));
+
         });
     }
 }

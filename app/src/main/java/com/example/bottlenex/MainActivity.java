@@ -145,6 +145,11 @@ public class MainActivity extends AppCompatActivity implements
 
         binding.btnCar.setOnClickListener(v ->
                 Toast.makeText(this, "Car clicked", Toast.LENGTH_SHORT).show());
+
+        binding.btnPersonalTools.setOnClickListener(v -> {
+            Intent intent = new Intent(MainActivity.this, PersonalTools.class);
+            startActivity(intent);
+        });
     }
 
     private void performSearch(String query) {
