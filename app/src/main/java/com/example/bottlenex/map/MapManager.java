@@ -173,20 +173,27 @@ public class MapManager {
             return;
         }
 
-        LocationRequest locationRequest = LocationRequest.create();
-        locationRequest.setInterval(3000); // 3 seconds
-        locationRequest.setFastestInterval(2000); // optional
-        locationRequest.setPriority(Priority.PRIORITY_HIGH_ACCURACY);
+        LocationRequest locationRequest = new LocationRequest.Builder(Priority.PRIORITY_HIGH_ACCURACY, 3000)
+                .setMinUpdateIntervalMillis(2000)
+                .build();
 
         locationCallback = new LocationCallback() {
             @Override
             public void onLocationResult(LocationResult locationResult) {
                 if (locationResult == null) return;
 
-                lastKnownLocation = locationResult.getLastLocation();
+                Location newLocation = locationResult.getLastLocation();
+                double lat = newLocation != null ? newLocation.getLatitude() : 0.0;
+                double lon = newLocation != null ? newLocation.getLongitude() : 0.0;
 
-                if (onLocationUpdateListener != null && lastKnownLocation != null) {
-                    onLocationUpdateListener.onLocationUpdate(lastKnownLocation);
+                if (newLocation != null && lat != 0.0 && !(lat == 37.4220936 && lon == -122.083922)) {
+                    lastKnownLocation = newLocation;
+                    Log.d("LOCATION_UPDATE", "Lat: " + lat + ", Lon: " + lon);
+                    if (onLocationUpdateListener != null) {
+                        onLocationUpdateListener.onLocationUpdate(newLocation);
+                    }
+                } else {
+                    Log.w("LOCATION_UPDATE", "Received fallback/default location, ignoring.");
                 }
             }
         };

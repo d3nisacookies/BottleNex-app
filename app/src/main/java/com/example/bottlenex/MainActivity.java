@@ -178,24 +178,18 @@ public class MainActivity extends AppCompatActivity implements
 
     @Override
     public void onLocationUpdate(Location location) {
-        Log.d("DEBUG_LOCATION", "Latitude: " + location.getLatitude() + ", Longitude: " + location.getLongitude());
-        // Update location info if no location is selected
-        if (selectedLocation == null) {
-            String locationText = String.format("My Location: %.6f, %.6f",
-                    location.getLatitude(), location.getLongitude());
-            binding.locationInfo.setText(locationText);
+        double lat = location.getLatitude();
+        double lon = location.getLongitude();
+
+        Log.d("LOCATION_DEBUG", "Received Location: " + lat + ", " + lon);
+
+        if (lat == 37.422094 || lon == -122.083922) {
+            Log.w("LOCATION_DEBUG", "⚠️ This is the fallback location from Google.");
         }
 
-        // Save location to Firebase if user is authenticated
-        if (currentUser != null) {
-            firebaseService.saveUserLocation(
-                    currentUser.getUid(),
-                    location.getLatitude(),
-                    location.getLongitude(),
-                    aVoid -> {
-                        // Location saved successfully
-                    }
-            );
+        if (selectedLocation == null) {
+            String locationText = String.format("My Location: %.6f, %.6f", lat, lon);
+            binding.locationInfo.setText(locationText);
         }
     }
 
@@ -251,6 +245,11 @@ public class MainActivity extends AppCompatActivity implements
     protected void onResume() {
         super.onResume();
         mapManager.onResume();
+
+        //For location updates
+        if (checkPermissions()) {
+            mapManager.startLocationUpdates();
+        }
     }
 
     @Override
