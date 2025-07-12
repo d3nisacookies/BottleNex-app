@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:gravity="center"
+    android:padding="24dp"
+    android:background="#2196F3"> <!-- Blue background -->
+
+    <!-- Title -->
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Give Feedback"
+        android:textSize="24sp"
+        android:textStyle="bold"
+        android:textColor="#FFFFFF"
+        android:layout_marginBottom="24dp" />
+
+    <!-- Square Text Box -->
+    <EditText
+        android:id="@+id/feedbackInput"
+        android:layout_width="400dp"
+        android:layout_height="400dp"
+        android:background="@android:drawable/edit_text"
+        android:gravity="top|start"
+        android:padding="12dp"
+        android:hint="Enter your feedback"
+        android:textColor="#000000"
+        android:textColorHint="#888888"
+        android:layout_marginBottom="24dp" />
+
+    <!-- Submit Button -->
+    <Button
+        android:id="@+id/submitButton"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Submit"
+        android:backgroundTint="#FFFFFF"
+        android:textColor="#2196F3" />
+</LinearLayout>

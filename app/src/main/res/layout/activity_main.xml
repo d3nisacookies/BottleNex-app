@@ -1,42 +1,90 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.constraintlayout.widget.ConstraintLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
-    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    tools:context=".MainActivity">
+    android:layout_height="match_parent">
 
-    <org.osmdroid.views.MapView
-        android:id="@+id/mapView"
-        android:layout_width="0dp"
-        android:layout_height="0dp"
-        app:layout_constraintBottom_toTopOf="@+id/bottomPanel"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
-
-    <!-- Top toolbar -->
+    <!-- Unified Top AppBar with blue background including toolbar and search -->
     <com.google.android.material.appbar.AppBarLayout
         android:id="@+id/appBarLayout"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:background="@android:color/transparent"
-        app:layout_constraintEnd_toEndOf="parent"
+        android:background="#2196F3"
+        android:elevation="4dp"
+        app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent">
+        app:layout_constraintEnd_toEndOf="parent">
 
         <com.google.android.material.appbar.MaterialToolbar
             android:id="@+id/toolbar"
             android:layout_width="match_parent"
             android:layout_height="?attr/actionBarSize"
-            android:background="@android:color/white"
-            android:elevation="4dp"
+            android:background="@android:color/transparent"
             app:title="@string/app_name"
-            app:titleTextColor="@android:color/black" />
+            app:titleTextColor="@android:color/white" />
+
+        <!-- Search Bar inside AppBarLayout to share the blue background -->
+        <!-- White background with rounded corners drawable -->
+        <FrameLayout
+            android:id="@+id/searchBarContainer"
+            android:layout_width="match_parent"
+            android:layout_height="56dp"
+            android:layout_marginStart="12dp"
+            android:layout_marginEnd="12dp"
+            android:layout_marginBottom="8dp"
+            android:background="@drawable/search_background"
+            android:layout_gravity="bottom"
+            android:paddingStart="12dp"
+            android:paddingEnd="12dp">
+
+            <!-- Left Search Icon Button -->
+            <ImageButton
+                android:id="@+id/btnSearchLeft"
+                android:layout_width="36dp"
+                android:layout_height="match_parent"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:contentDescription="Search Icon"
+                android:src="@android:drawable/ic_menu_search"
+                android:layout_gravity="start|center_vertical"
+                android:padding="6dp" />
+
+            <!-- SEARCH VIEW replacing old TextView -->
+            <SearchView
+                android:id="@+id/searchView"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:queryHint="Search location"
+                android:iconifiedByDefault="false"
+                android:paddingStart="44dp"
+                android:paddingEnd="44dp"
+                android:background="@android:color/transparent" />
+
+            <!-- Right Mic Icon Button -->
+            <ImageButton
+                android:id="@+id/btnSearchRight"
+                android:layout_width="36dp"
+                android:layout_height="match_parent"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:contentDescription="Voice Icon"
+                android:src="@drawable/profile"
+                android:layout_gravity="end|center_vertical"
+                android:padding="6dp" />
+        </FrameLayout>
 
     </com.google.android.material.appbar.AppBarLayout>
 
-    <!-- Map controls -->
+    <!-- Map View -->
+    <org.osmdroid.views.MapView
+        android:id="@+id/mapView"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        app:layout_constraintTop_toBottomOf="@id/appBarLayout"
+        app:layout_constraintBottom_toTopOf="@+id/bottomPanel"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
+
+    <!-- Map Controls on right -->
     <LinearLayout
         android:id="@+id/mapControls"
         android:layout_width="wrap_content"
@@ -46,8 +94,8 @@
         android:elevation="4dp"
         android:orientation="vertical"
         android:padding="8dp"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/appBarLayout">
+        app:layout_constraintTop_toBottomOf="@id/appBarLayout"
+        app:layout_constraintEnd_toEndOf="parent">
 
         <ImageButton
             android:id="@+id/btnZoomIn"
@@ -73,21 +121,20 @@
             android:background="?attr/selectableItemBackgroundBorderless"
             android:contentDescription="My Location"
             android:src="@android:drawable/ic_menu_mylocation" />
-
     </LinearLayout>
 
-    <!-- Bottom panel for navigation controls -->
+    <!-- Bottom Panel with green background -->
     <LinearLayout
         android:id="@+id/bottomPanel"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:background="@android:color/white"
+        android:background="#4CAF50"
         android:elevation="8dp"
         android:orientation="vertical"
         android:padding="16dp"
         app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent">
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent">
 
         <TextView
             android:id="@+id/locationInfo"
@@ -95,7 +142,8 @@
             android:layout_height="wrap_content"
             android:text="Tap on map to get location"
             android:textAlignment="center"
-            android:textSize="14sp" />
+            android:textSize="14sp"
+            android:textColor="@android:color/white" />
 
         <LinearLayout
             android:layout_width="match_parent"
@@ -104,48 +152,61 @@
             android:orientation="horizontal">
 
             <com.google.android.material.button.MaterialButton
-                android:id="@+id/btnSearch"
-                style="@style/Widget.Material3.Button.OutlinedButton"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_marginEnd="8dp"
-                android:layout_weight="1"
-                android:text="Search"
-                android:textSize="18sp" />
-
-            <com.google.android.material.button.MaterialButton
                 android:id="@+id/btnNavigate"
+                style="@style/Widget.Material3.Button.OutlinedButton"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_marginStart="8dp"
                 android:layout_weight="1"
                 android:text="Navigate"
                 android:textSize="18sp" />
-
         </LinearLayout>
 
-        <!-- New Settings Button -->
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/btnSettings"
-            style="@style/Widget.Material3.Button.TextButton"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_gravity="center"
-            android:layout_marginTop="8dp"
-            android:text="Settings"
-            android:textSize="18sp" />
+        <!-- Bottom bar buttons row -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="56dp"
+            android:orientation="horizontal"
+            android:gravity="center"
+            android:layout_marginTop="16dp">
 
-        <!-- Report a Bug Button -->
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/btnBugReport"
-            style="@style/Widget.Material3.Button.TextButton"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_gravity="center"
-            android:layout_marginTop="8dp"
-            android:text="Report a Bug"
-            android:textSize="18sp" />
+            <ImageButton
+                android:id="@+id/btnNavigation"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:src="@drawable/gps"
+                android:contentDescription="Home"
+                android:background="@android:color/transparent" />
 
+            <ImageButton
+                android:id="@+id/btnBookmark"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:src="@drawable/bookmark"
+                android:contentDescription="Search"
+                android:background="@android:color/transparent" />
+
+            <ImageButton
+                android:id="@+id/btnCar"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:src="@drawable/car"
+                android:contentDescription="Profile"
+                android:background="@android:color/transparent" />
+
+            <ImageButton
+                android:id="@+id/btnPersonalTools"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:src="@drawable/dehaze"
+                android:contentDescription="car"
+                android:background="@android:color/transparent" />
+
+        </LinearLayout>
     </LinearLayout>
 
 </androidx.constraintlayout.widget.ConstraintLayout>

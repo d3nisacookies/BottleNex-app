@@ -45,7 +45,23 @@
         </activity>
         
         <activity android:name=".BugReportActivity" />
-        
+
+        <activity
+            android:name=".PersonalTools"
+            android:exported="true"
+            android:theme="@style/Theme.BottleNex" />
+        <activity android:name=".OfflineMapsActivity" />
+        <activity android:name=".RouteHistoryActivity" />
+        <activity android:name=".FeedbackActivity" />
+
+        <activity android:name=".Bookmark" />
+        <activity android:name=".StarredPlacesActivity" />
+        <activity android:name=".SavedTripsActivity" />
+        <activity android:name=".ToGoPlacesActivity" />
+        <activity android:name=".FavouritesActivity" />
+
+
+
     </application>
 
 </manifest>

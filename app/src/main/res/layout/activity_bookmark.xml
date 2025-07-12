@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:orientation="vertical"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#2196F3"
+    android:padding="16dp">
+
+    <!-- Top spacer: about 10% height -->
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="0.10" />
+
+    <!-- Heading aligned to the left -->
+    <TextView
+        android:id="@+id/tvHeading"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Bookmark"
+        android:gravity="start"
+        android:textColor="@android:color/white"
+        android:textSize="24sp"
+        android:textStyle="bold"
+        android:paddingBottom="12dp" />
+
+    <!-- Button 1 -->
+    <Button
+        android:id="@+id/btnStarredPlaces"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="0.15"
+        android:text="Starred Places"
+        android:textColor="@android:color/white"
+        android:textSize="18sp"
+        android:backgroundTint="@android:color/holo_blue_dark" />
+
+    <!-- Divider 1 -->
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="2dp"
+        android:background="#000000" />
+
+    <!-- Button 2 -->
+    <Button
+        android:id="@+id/btnSavedTrips"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="0.15"
+        android:text="Saved Trips"
+        android:textColor="@android:color/white"
+        android:textSize="18sp"
+        android:backgroundTint="@android:color/holo_blue_dark" />
+
+    <!-- Divider 2 -->
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="2dp"
+        android:background="#000000" />
+
+    <!-- Button 3 -->
+    <Button
+        android:id="@+id/btnToGoPlaces"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="0.15"
+        android:text="To Go Places"
+        android:textColor="@android:color/white"
+        android:textSize="18sp"
+        android:backgroundTint="@android:color/holo_blue_dark" />
+
+    <!-- Divider 3 -->
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="2dp"
+        android:background="#000000" />
+
+    <!-- Button 4 -->
+    <Button
+        android:id="@+id/btnFavourites"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="0.15"
+        android:text="Favorites"
+        android:textColor="@android:color/white"
+        android:textSize="18sp"
+        android:backgroundTint="@android:color/holo_blue_dark" />
+
+    <!-- Bottom spacer to fill remaining space -->
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="0.10" />
+
+</LinearLayout>
