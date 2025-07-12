@@ -165,7 +165,7 @@ public class MapManager {
             Log.e(TAG, "Error setting up map click listener", e);
         }
     }
-    
+
     public void startLocationUpdates() {
         if (ActivityCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED &&
                 ActivityCompat.checkSelfPermission(context, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
@@ -183,20 +183,27 @@ public class MapManager {
                 if (locationResult == null) return;
 
                 Location newLocation = locationResult.getLastLocation();
-                double lat = newLocation != null ? newLocation.getLatitude() : 0.0;
-                double lon = newLocation != null ? newLocation.getLongitude() : 0.0;
 
-                if (newLocation != null && lat != 0.0 && !(lat == 37.4220936 && lon == -122.083922)) {
-                    lastKnownLocation = newLocation;
-                    Log.d("LOCATION_UPDATE", "Lat: " + lat + ", Lon: " + lon);
-                    if (onLocationUpdateListener != null) {
-                        onLocationUpdateListener.onLocationUpdate(newLocation);
+                if (newLocation != null) {
+                    double lat = newLocation.getLatitude();
+                    double lon = newLocation.getLongitude();
+
+                    Log.d("LOCATION_DEBUG", "Received Location: " + lat + ", " + lon);
+
+                    if (lat != 0.0 && !(lat == 37.4220936 && lon == -122.083922)) {
+                        lastKnownLocation = newLocation;
+                        if (onLocationUpdateListener != null) {
+                            onLocationUpdateListener.onLocationUpdate(newLocation);
+                        }
+                    } else {
+                        Log.w("LOCATION_DEBUG", "This is the fallback location from Google.");
                     }
                 } else {
-                    Log.w("LOCATION_UPDATE", "Received fallback/default location, ignoring.");
+                    Log.w("LOCATION_DEBUG", "Null location received.");
                 }
             }
         };
+
 
         fusedLocationClient.requestLocationUpdates(locationRequest, locationCallback, Looper.getMainLooper());
     }

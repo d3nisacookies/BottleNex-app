@@ -278,17 +278,48 @@ public class MainActivity extends AppCompatActivity implements
     }
 
     private void onNavigateClicked() {
-        if (selectedLocation != null) {
-            Toast.makeText(this, "Navigation to selected location", Toast.LENGTH_SHORT).show();
-        } else {
+        if (selectedLocation == null) {
             Toast.makeText(this, "Please select a location on the map first", Toast.LENGTH_SHORT).show();
+            return;
         }
+
+        Location currentLocation = mapManager.getLastKnownLocation();
+        if (currentLocation == null) {
+            Toast.makeText(this, "Current location not available", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        GeoPoint start = new GeoPoint(currentLocation.getLatitude(), currentLocation.getLongitude());
+        GeoPoint end = selectedLocation;
+
+        String apiKey = "eyJvcmciOiI1YjNjZTM1OTc4NTExMTAwMDFjZjYyNDgiLCJpZCI6ImE3NmQzMjQwZWU4MzRjYWFiNTllOWI0MWM2MmE5ODc3IiwiaCI6Im11cm11cjY0In0=";
+
+        RoutePlanner.getRoute(start, end, apiKey, new RoutePlanner.RouteCallback() {
+            @Override
+            public void onRouteReady(ArrayList<GeoPoint> routePoints, double duration, double distance) {
+                runOnUiThread(() -> {
+                    mapManager.drawRoute(routePoints);
+                    String info = String.format("Route: %.2f km, %.2f min", distance / 1000.0, duration / 60.0);
+                    binding.locationInfo.setText(info);
+                });
+            }
+
+            @Override
+            public void onError(String errorMessage) {
+                runOnUiThread(() -> {
+                    Toast.makeText(MainActivity.this, "Routing failed: " + errorMessage, Toast.LENGTH_LONG).show();
+                });
+            }
+        });
     }
 
     @Override
     protected void onResume() {
         super.onResume();
         mapManager.onResume();
+        if (checkPermissions()) {
+            mapManager.startLocationUpdates();
+        }
     }
 
     @Override
