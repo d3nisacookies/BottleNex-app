@@ -73,6 +73,7 @@ dependencies {
     
     // Room database
     implementation(libs.room.runtime)
+    implementation(libs.play.services.location)
     annotationProcessor(libs.room.compiler)
     
     // Networking
@@ -109,4 +110,7 @@ dependencies {
     implementation(libs.firebase.auth)
     implementation(libs.firebase.storage)
     implementation(libs.firebase.crashlytics)
+
+    //Location
+    implementation(libs.play.services.location)
 }

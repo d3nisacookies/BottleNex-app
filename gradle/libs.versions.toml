@@ -21,6 +21,7 @@ osmdroid = "6.1.18"
 firebase-bom = "32.7.2"
 gms-google-services = "4.4.1"
 crashlytics-gradle = "2.9.9"
+playServicesLocation = "21.3.0"
 
 [libraries]
 junit = { group = "junit", name = "junit", version.ref = "junit" }
@@ -55,6 +56,7 @@ firebase-analytics = { group = "com.google.firebase", name = "firebase-analytics
 firebase-auth = { group = "com.google.firebase", name = "firebase-auth" }
 firebase-storage = { group = "com.google.firebase", name = "firebase-storage" }
 firebase-crashlytics = { group = "com.google.firebase", name = "firebase-crashlytics" }
+play-services-location = { group = "com.google.android.gms", name = "play-services-location", version.ref = "playServicesLocation" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
