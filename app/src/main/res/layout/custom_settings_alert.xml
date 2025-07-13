@@ -1,0 +1,120 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/alertsLayout"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="#0099FF">
+
+    <!-- Title -->
+    <TextView
+        android:id="@+id/titleText"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="You"
+        android:textColor="#000000"
+        android:textSize="24sp"
+        android:textStyle="bold"
+        android:gravity="center"
+        android:paddingTop="20dp"
+        android:paddingBottom="10dp" />
+
+    <!-- Button -->
+    <Button
+        android:id="@+id/customAlertsButton"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="start"
+        android:layout_marginLeft="10dp"
+        android:layout_marginBottom="20dp"
+        android:backgroundTint="#444444"
+        android:padding="8dp"
+        android:text="Custom Alerts"
+        android:textColor="#FFFFFF" />
+
+    <!-- Alert Options -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:paddingHorizontal="20dp">
+
+        <!-- Speed Limit Alert -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="60dp"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:background="#0099FF"
+            android:layout_marginBottom="5dp"
+            android:paddingHorizontal="10dp">
+
+            <TextView
+                android:id="@+id/speedLimitText"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:text="Speed Limit Alert"
+                android:textSize="16sp"
+                android:layout_weight="1"
+                android:textColor="#FFFFFF" />
+
+            <Switch
+                android:id="@+id/switchSpeedLimit"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:checked="true" />
+        </LinearLayout>
+
+        <!-- Road Incident Alert -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="60dp"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:background="#0099FF"
+            android:layout_marginBottom="5dp"
+            android:paddingHorizontal="10dp">
+
+            <TextView
+                android:id="@+id/roadIncidentText"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:text="Road Incident Alert"
+                android:textSize="16sp"
+                android:layout_weight="1"
+                android:textColor="#FFFFFF" />
+
+            <Switch
+                android:id="@+id/switchRoadIncident"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:checked="true" />
+        </LinearLayout>
+
+        <!-- Speed Camera Early Warning Alert -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="60dp"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:background="#0099FF"
+            android:paddingHorizontal="10dp">
+
+            <TextView
+                android:id="@+id/speedCameraText"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:text="Speed Camera Early Warning Alert"
+                android:textSize="16sp"
+                android:layout_weight="1"
+                android:textColor="#FFFFFF" />
+
+            <Switch
+                android:id="@+id/switchSpeedCamera"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:checked="true" />
+        </LinearLayout>
+    </LinearLayout>
+</LinearLayout>

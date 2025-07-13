@@ -40,6 +40,14 @@ import java.util.Locale;
 import javax.inject.Inject;
 
 import dagger.hilt.android.AndroidEntryPoint;
+import com.example.bottlenex.AlertPreferenceHelper;
+import com.example.bottlenex.AlertsNotification;
+import com.example.bottlenex.OSMMaxSpeedFetcher;
+import com.example.bottlenex.MapQuestIncidentsFetcher;
+import android.graphics.drawable.Drawable;
+import java.util.HashSet;
+import java.util.Set;
+import com.example.bottlenex.OSMSpeedCameraFetcher;
 
 @AndroidEntryPoint
 public class MainActivity extends AppCompatActivity implements
@@ -49,10 +57,7 @@ public class MainActivity extends AppCompatActivity implements
     private static final int PERMISSION_REQUEST_CODE = 1001;
     private static final String[] REQUIRED_PERMISSIONS = {
             Manifest.permission.ACCESS_FINE_LOCATION,
-            Manifest.permission.ACCESS_COARSE_LOCATION,
-            Manifest.permission.WRITE_EXTERNAL_STORAGE,
-            Manifest.permission.READ_EXTERNAL_STORAGE,
-            Manifest.permission.INTERNET // Added for Geocoder
+            Manifest.permission.ACCESS_COARSE_LOCATION
     };
     
     private ActivityMainBinding binding;
@@ -65,12 +70,19 @@ public class MainActivity extends AppCompatActivity implements
     
     private GeoPoint selectedLocation;
     private FirebaseUser currentUser;
+    private boolean hasAlertedSpeedLimit = false;
+    private Integer currentSpeedLimit = null;
+    private Set<String> alertedIncidentIds = new HashSet<>();
+    private Set<String> alertedSpeedCameraIds = new HashSet<>();
     
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         binding = ActivityMainBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
+
+        // Speed Limit Alert logic
+        // (REMOVED from onCreate - should only be in onLocationUpdate)
 
         initializeFirebaseAuth();
 
@@ -202,13 +214,15 @@ public class MainActivity extends AppCompatActivity implements
     }
     
     private boolean checkPermissions() {
+        boolean allGranted = true;
         for (String permission : REQUIRED_PERMISSIONS) {
             if (ContextCompat.checkSelfPermission(this, permission) 
                     != PackageManager.PERMISSION_GRANTED) {
-                return false;
+                Log.w("PermissionCheck", "Missing permission: " + permission);
+                allGranted = false;
             }
         }
-        return true;
+        return allGranted;
     }
     
     private void requestPermissions() {
@@ -261,19 +275,158 @@ public class MainActivity extends AppCompatActivity implements
     
     @Override
     public void onLocationUpdate(Location location) {
-        if (selectedLocation == null) {
-            String locationText = String.format("My Location: %.6f, %.6f",
-                    location.getLatitude(), location.getLongitude());
-            binding.locationInfo.setText(locationText);
+        Log.d("SpeedAlert", "onLocationUpdate called. Location: " + location);
+        Log.d("SpeedAlert", "location.hasSpeed(): " + location.hasSpeed());
+        if (!location.hasSpeed()) {
+            Log.d("SpeedAlert", "No speed data in this location update. Skipping speed alert logic.");
+            return;
+        }
+        float speedMps = location.getSpeed(); // meters/second
+        float speedKmh = speedMps * 3.6f; // convert to km/h
+        double lat = location.getLatitude();
+        double lon = location.getLongitude();
+
+        // --- Speed Camera Alert Integration ---
+        AlertPreferenceHelper alertPreferenceHelper = new AlertPreferenceHelper(this);
+        if (alertPreferenceHelper.isSpeedCameraAlertEnabled()) {
+            Log.d("SpeedCameraAlert", "Speed Camera Alert is ENABLED");
+            double radiusKm = 2.0; // Search within 2km
+            OSMSpeedCameraFetcher.fetchSpeedCameras(lat, lon, radiusKm, cameras -> {
+                // Remove old speed camera markers
+                List<Marker> toRemove = new ArrayList<>();
+                for (org.osmdroid.views.overlay.Overlay overlay : binding.mapView.getOverlays()) {
+                    if (overlay instanceof Marker && "speed_camera".equals(((Marker) overlay).getSubDescription())) {
+                        toRemove.add((Marker) overlay);
+                    }
+                }
+                binding.mapView.getOverlays().removeAll(toRemove);
+
+                for (OSMSpeedCameraFetcher.SpeedCamera camera : cameras) {
+                    // Calculate distance to camera
+                    float[] results = new float[1];
+                    Location.distanceBetween(lat, lon, camera.lat, camera.lon, results);
+                    int distanceMeters = (int) results[0];
+
+                    // Only display marker and alert if within 400m
+                    if (distanceMeters <= 400) {
+                        // Add marker for each camera
+                        Marker marker = new Marker(binding.mapView);
+                        marker.setPosition(new GeoPoint(camera.lat, camera.lon));
+                        marker.setTitle("Speed Camera");
+                        marker.setSubDescription("speed_camera");
+                        Drawable icon = ContextCompat.getDrawable(this, R.drawable.ic_camera_red);
+                        if (icon != null) marker.setIcon(icon);
+                        binding.mapView.getOverlays().add(marker);
+
+                        // Use lat/lon as a unique camera ID for this session
+                        String cameraId = camera.lat + "," + camera.lon;
+
+                        if (!alertedSpeedCameraIds.contains(cameraId)) {
+                            Log.d("SpeedCameraAlert", "Speed camera detected: " + cameraId + " at " + distanceMeters + "m");
+                            Log.d("SpeedCameraAlert", "Sending speed camera notification now.");
+                            AlertsNotification.sendSpeedCameraAlert(
+                                this,
+                                "Speed Camera Ahead!",
+                                "A fixed speed camera is detected ahead."
+                            );
+                            alertedSpeedCameraIds.add(cameraId);
+                        }
+                    }
+                }
+                binding.mapView.invalidate();
+            });
+        } else {
+            Log.d("SpeedCameraAlert", "Speed Camera Alert is DISABLED");
         }
 
-        if (currentUser != null) {
-            firebaseService.saveUserLocation(
-                    currentUser.getUid(),
-                    location.getLatitude(),
-                    location.getLongitude(),
-                    aVoid -> {}
-            );
+        // --- Road Incident Alert Integration ---
+        if (alertPreferenceHelper.isRoadIncidentAlertEnabled()) {
+            Log.d("IncidentAlert", "Road Incident Alert is ENABLED");
+            double radiusKm = 2.0; // Search within 2km
+            MapQuestIncidentsFetcher.fetchIncidents(lat, lon, radiusKm, incidents -> {
+                // Remove old incident markers
+                List<Marker> toRemove = new ArrayList<>();
+                for (org.osmdroid.views.overlay.Overlay overlay : binding.mapView.getOverlays()) {
+                    if (overlay instanceof Marker && "incident".equals(((Marker) overlay).getSubDescription())) {
+                        toRemove.add((Marker) overlay);
+                    }
+                }
+                binding.mapView.getOverlays().removeAll(toRemove);
+
+                for (MapQuestIncidentsFetcher.Incident incident : incidents) {
+                    // Add marker for each incident
+                    Marker marker = new Marker(binding.mapView);
+                    marker.setPosition(new GeoPoint(incident.lat, incident.lon));
+                    marker.setTitle("Incident");
+                    marker.setSubDescription("incident");
+                    marker.setSnippet(incident.description);
+                    Drawable icon = ContextCompat.getDrawable(this, R.drawable.ic_warning_yellow);
+                    if (icon != null) marker.setIcon(icon);
+                    binding.mapView.getOverlays().add(marker);
+
+                    // Calculate distance to incident
+                    float[] results = new float[1];
+                    Location.distanceBetween(lat, lon, incident.lat, incident.lon, results);
+                    int distanceMeters = (int) results[0];
+
+                    // Use lat/lon as a unique incident ID for this session
+                    String incidentId = incident.lat + "," + incident.lon;
+
+                    if (distanceMeters <= 800 && !alertedIncidentIds.contains(incidentId)) {
+                        Log.d("IncidentAlert", "Incident ahead within 800m: " + incident.description);
+                        AlertsNotification.sendRoadIncidentAlert(
+                            this,
+                            "Road Incident Ahead! (" + distanceMeters + "m)",
+                            "Please be cautious."
+                        );
+                        alertedIncidentIds.add(incidentId);
+                    }
+                }
+                binding.mapView.invalidate();
+            });
+        } else {
+            Log.d("IncidentAlert", "Road Incident Alert is DISABLED");
+        }
+
+        // --- Existing Speed Limit Alert Logic ---
+        OSMMaxSpeedFetcher.fetchMaxSpeed(lat, lon, maxSpeedKmh -> {
+            if (maxSpeedKmh != null) {
+                Log.d("SpeedAlert", "Fetched speed limit from OSM: " + maxSpeedKmh + " km/h");
+                currentSpeedLimit = maxSpeedKmh;
+                checkSpeedAndAlert(speedKmh, currentSpeedLimit);
+            } else {
+                Log.d("SpeedAlert", "No speed limit found from OSM. No alert will be triggered.");
+                // Do not set a default speed limit or trigger alert
+            }
+        });
+    }
+
+    private void checkSpeedAndAlert(float speedKmh, int speedLimit) {
+        AlertPreferenceHelper alertPreferenceHelper = new AlertPreferenceHelper(this);
+        if (alertPreferenceHelper.isSpeedLimitAlertEnabled()) {
+            Log.d("SpeedAlert", "Speed Limit Alert is ENABLED");
+            if (speedKmh > speedLimit) {
+                if (!hasAlertedSpeedLimit) {
+                    String message = "Please slow down.\nCurrent Speed: " + String.format("%.1f", speedKmh) + " km/h";
+                    Log.d("SpeedAlert", "Speed exceeds limit! Sending notification.");
+                    AlertsNotification.sendSpeedLimitAlert(
+                        this,
+                        "Speed Alert! (>" + speedLimit + ")",
+                        message
+                    );
+                    hasAlertedSpeedLimit = true;
+                } else {
+                    Log.d("SpeedAlert", "Already alerted for this overspeeding session. No new alert.");
+                }
+            } else {
+                if (hasAlertedSpeedLimit) {
+                    Log.d("SpeedAlert", "Speed dropped below or equals limit. Resetting alert flag.");
+                }
+                hasAlertedSpeedLimit = false;
+                Log.d("SpeedAlert", "Speed is within limit. No alert. (speedKmh=" + speedKmh + ", limit=" + speedLimit + ")");
+            }
+        } else {
+            Log.d("SpeedAlert", "Speed Limit Alert is DISABLED");
         }
     }
 
