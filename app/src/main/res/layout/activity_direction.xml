@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:padding="16dp">
+
+    <!-- Time Display -->
+    <TextView
+        android:id="@+id/tvTime"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="9:41"
+        android:textSize="14sp"
+        android:gravity="end"/>
+
+    <!-- Location Inputs -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:layout_marginTop="16dp">
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Your Location"
+            android:textColor="@color/gray_600"/>
+
+        <EditText
+            android:id="@+id/etCurrentLocation"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="Enter current location"
+            android:layout_marginTop="4dp"/>
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Destination"
+            android:textColor="@color/gray_600"
+            android:layout_marginTop="16dp"/>
+
+        <EditText
+            android:id="@+id/etDestination"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="Enter destination"
+            android:layout_marginTop="4dp"/>
+    </LinearLayout>
+
+    <!-- Divider -->
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:background="@color/gray_200"
+        android:layout_marginVertical="16dp"/>
+
+    <!-- Location List -->
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/rvLocations"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"/>
+</LinearLayout>
