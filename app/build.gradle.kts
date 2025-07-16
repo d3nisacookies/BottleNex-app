@@ -33,17 +33,17 @@ android {
             versionNameSuffix = "-debug"
         }
     }
-    
+
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
     }
-    
+
     buildFeatures {
         viewBinding = true
         dataBinding = true
     }
-    
+
     packaging {
         resources {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
@@ -54,51 +54,51 @@ android {
 dependencies {
     // Firebase BoM for version management
     implementation(platform(libs.firebase.bom))
-    
+
     // Core Android dependencies
     implementation(libs.core)
     implementation(libs.appcompat)
     implementation(libs.material)
     implementation(libs.activity)
     implementation(libs.constraintlayout)
-    
+
     // Lifecycle components
     implementation(libs.lifecycle.viewmodel)
     implementation(libs.lifecycle.livedata)
     implementation(libs.lifecycle.runtime)
-    
+
     // Navigation
     implementation(libs.navigation.fragment)
     implementation(libs.navigation.ui)
-    
+
     // Room database
     implementation(libs.room.runtime)
     implementation(libs.play.services.location)
     annotationProcessor(libs.room.compiler)
-    
+
     // Networking
     implementation(libs.retrofit)
     implementation(libs.retrofit.gson)
     implementation(libs.okhttp)
     implementation(libs.okhttp.logging)
-    
+
     // Image loading
     implementation(libs.glide)
     annotationProcessor(libs.glide.compiler)
-    
+
     // Dependency injection
     implementation(libs.hilt.android)
     annotationProcessor(libs.hilt.compiler)
-    
+
     // Data storage
     implementation(libs.datastore.preferences)
-    
+
     // Background work
     implementation(libs.work.runtime)
-    
+
     // OpenStreetMap
     implementation(libs.osmdroid)
-    
+
     // Testing
     testImplementation(libs.junit)
     androidTestImplementation(libs.ext.junit)
@@ -111,6 +111,11 @@ dependencies {
     implementation(libs.firebase.storage)
     implementation(libs.firebase.crashlytics)
 
-    //Location
-    implementation(libs.play.services.location)
+    // Location and Google Play Services Maps (converted to Kotlin syntax)
+    implementation("com.google.android.gms:play-services-maps:18.1.0")
+    implementation("com.google.android.gms:play-services-location:21.0.1")
+
+    // OkHttp and Gson
+    implementation("com.squareup.okhttp3:okhttp:4.10.0")
+    implementation("com.google.code.gson:gson:2.10.1")
 }

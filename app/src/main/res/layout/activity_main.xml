@@ -70,7 +70,42 @@
                 android:src="@drawable/profile"
                 android:layout_gravity="end|center_vertical"
                 android:padding="6dp" />
+
+            <ImageButton
+                android:id="@+id/btnFavorite"
+                android:layout_width="36dp"
+                android:layout_height="match_parent"
+                android:layout_gravity="end|center_vertical"
+                android:layout_marginEnd="50dp"
+                android:padding="6dp"
+                android:src="@drawable/favourite"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:contentDescription="Add to Favorite"/>
+
         </FrameLayout>
+        <FrameLayout
+            android:id="@+id/destinationSearchBarContainer"
+            android:layout_width="match_parent"
+            android:layout_height="56dp"
+            android:layout_marginStart="12dp"
+            android:layout_marginEnd="12dp"
+            android:layout_marginBottom="8dp"
+            android:layout_marginTop="8dp"
+            android:background="@drawable/search_background"
+            android:layout_gravity="bottom"
+            android:paddingStart="12dp"
+            android:paddingEnd="12dp">
+
+            <SearchView
+                android:id="@+id/destinationSearchView"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:queryHint="Enter destination"
+                android:iconifiedByDefault="false"
+                android:background="@android:color/transparent" />
+        </FrameLayout>
+
+
 
     </com.google.android.material.appbar.AppBarLayout>
 
