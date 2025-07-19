@@ -10,6 +10,8 @@ import androidx.appcompat.app.AppCompatActivity;
 public class Bookmark extends AppCompatActivity {
 
     private static final int REQUEST_CODE_FAVOURITES = 100;
+    private static final int REQUEST_CODE_TOGO = 101;  // Request code for ToGoPlacesActivity
+    private static final int REQUEST_CODE_STARRED = 102; // Request code for StarredPlacesActivity
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -23,7 +25,7 @@ public class Bookmark extends AppCompatActivity {
 
         btnStarred.setOnClickListener(v -> {
             Intent intent = new Intent(Bookmark.this, StarredPlacesActivity.class);
-            startActivity(intent);
+            startActivityForResult(intent, REQUEST_CODE_STARRED);
         });
 
         btnSavedTrips.setOnClickListener(v -> {
@@ -33,12 +35,11 @@ public class Bookmark extends AppCompatActivity {
 
         btnToGo.setOnClickListener(v -> {
             Intent intent = new Intent(Bookmark.this, ToGoPlacesActivity.class);
-            startActivity(intent);
+            startActivityForResult(intent, REQUEST_CODE_TOGO);  // Start for result to get selected place name
         });
 
         btnFavorites.setOnClickListener(v -> {
             Intent intent = new Intent(Bookmark.this, FavouritesActivity.class);
-            // Launch FavouritesActivity expecting a result
             startActivityForResult(intent, REQUEST_CODE_FAVOURITES);
         });
     }
@@ -47,14 +48,30 @@ public class Bookmark extends AppCompatActivity {
     protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
 
-        if (requestCode == REQUEST_CODE_FAVOURITES && resultCode == RESULT_OK && data != null) {
-            String selectedLocation = data.getStringExtra("selected_location");
-            if (selectedLocation != null) {
-                // Pass the selected location back to MainActivity
-                Intent resultIntent = new Intent();
-                resultIntent.putExtra("selected_location", selectedLocation);
+        if (resultCode == RESULT_OK && data != null) {
+            Intent resultIntent = new Intent();
+
+            if (requestCode == REQUEST_CODE_STARRED) {
+                // Pass all extras from StarredPlacesActivity back to MainActivity
+                resultIntent.putExtras(data.getExtras());
                 setResult(RESULT_OK, resultIntent);
-                finish(); // Close Bookmark activity and return to MainActivity
+                finish();
+
+            } else if (requestCode == REQUEST_CODE_FAVOURITES) {
+                String selectedLocation = data.getStringExtra("selected_location");
+                if (selectedLocation != null) {
+                    resultIntent.putExtra("selected_location", selectedLocation);
+                    setResult(RESULT_OK, resultIntent);
+                    finish();
+                }
+
+            } else if (requestCode == REQUEST_CODE_TOGO) {
+                String selectedPlaceName = data.getStringExtra("selected_place_name");
+                if (selectedPlaceName != null) {
+                    resultIntent.putExtra("selected_location", selectedPlaceName);
+                    setResult(RESULT_OK, resultIntent);
+                    finish();
+                }
             }
         }
     }

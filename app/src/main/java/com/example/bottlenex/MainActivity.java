@@ -24,7 +24,7 @@ import com.google.firebase.auth.FirebaseUser;
 import com.example.bottlenex.routing.RoutePlanner;
 import org.osmdroid.util.GeoPoint;
 import java.util.ArrayList;
-
+import org.osmdroid.util.GeoPoint;
 import org.osmdroid.views.overlay.Marker;
 
 import java.io.IOException;
@@ -41,6 +41,9 @@ import com.example.bottlenex.AlertsNotification;
 import com.example.bottlenex.OSMMaxSpeedFetcher;
 import com.example.bottlenex.MapQuestIncidentsFetcher;
 import android.graphics.drawable.Drawable;
+import java.util.HashSet;
+import java.util.Set;
+import com.example.bottlenex.OSMSpeedCameraFetcher;
 
 @AndroidEntryPoint
 public class MainActivity extends AppCompatActivity implements
@@ -53,22 +56,52 @@ public class MainActivity extends AppCompatActivity implements
             Manifest.permission.ACCESS_COARSE_LOCATION
     };
 
-    private static final int REQUEST_CODE_BOOKMARK = 100; // For Bookmark Activity result
+    private static final int REQUEST_CODE_BOOKMARK = 100;
 
     private ActivityMainBinding binding;
-
     @Inject
     MapManager mapManager;
-
     @Inject
     FirebaseService firebaseService;
-
     private GeoPoint selectedLocation;
     private FirebaseUser currentUser;
     private boolean hasAlertedSpeedLimit = false;
     private Integer currentSpeedLimit = null;
     private Set<String> alertedIncidentIds = new HashSet<>();
     private Set<String> alertedSpeedCameraIds = new HashSet<>();
+
+    private void saveStarred(String name, double lat, double lon) {
+        SharedPreferences prefs = getSharedPreferences("starred_places", MODE_PRIVATE);
+        Set<String> starred = prefs.getStringSet("starred_places_list", new HashSet<>());
+        Set<String> newStarred = new HashSet<>(starred);
+        String entry = name + "|" + lat + "|" + lon;
+        newStarred.add(entry);
+        prefs.edit().putStringSet("starred_places_list", newStarred).apply();
+    }
+
+    private void loadStarredPlaces() {
+        SharedPreferences prefs = getSharedPreferences("starred_places", MODE_PRIVATE);
+        Set<String> starred = prefs.getStringSet("starred_places_list", new HashSet<>());
+        for (String entry : starred) {
+            String[] parts = entry.split("\\|");
+            if (parts.length == 3) {
+                String name = parts[0];
+                double lat = Double.parseDouble(parts[1]);
+                double lon = Double.parseDouble(parts[2]);
+
+                GeoPoint point = new GeoPoint(lat, lon);
+                Marker marker = new Marker(binding.mapView);
+                marker.setPosition(point);
+                marker.setTitle("⭐ Starred: " + name);
+                Drawable icon = getResources().getDrawable(R.drawable.star);
+                marker.setIcon(icon);
+                binding.mapView.getOverlays().add(marker);
+            }
+        }
+        binding.mapView.invalidate();
+    }
+
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -79,6 +112,7 @@ public class MainActivity extends AppCompatActivity implements
         initializeFirebaseAuth();
 
         mapManager.setupMap(binding.mapView);
+        loadStarredPlaces();
         mapManager.setOnMapClickListener(this);
         mapManager.setOnLocationUpdateListener(this);
 
@@ -135,8 +169,7 @@ public class MainActivity extends AppCompatActivity implements
         }
 
         // Old search buttons (optional)
-        binding.btnSearchLeft.setOnClickListener(v ->
-                Toast.makeText(this, "Search icon clicked", Toast.LENGTH_SHORT).show());
+
 
         binding.btnSearchRight.setOnClickListener(v ->
                 Toast.makeText(this, "Profile Clicked", Toast.LENGTH_SHORT).show());
@@ -159,13 +192,50 @@ public class MainActivity extends AppCompatActivity implements
         binding.btnCar.setOnClickListener(v ->
                 Toast.makeText(this, "Car clicked", Toast.LENGTH_SHORT).show());
 
-        // Favourite button inside MainActivity to save current search query
+
         binding.btnFavorite.setOnClickListener(v -> {
             String query = binding.searchView.getQuery().toString();
             if (query.isEmpty()) {
                 Toast.makeText(this, "Search something before saving!", Toast.LENGTH_SHORT).show();
             } else {
                 saveFavourite(query);
+            }
+        });
+        binding.btnStarred.setOnClickListener(v -> {
+            String query = binding.searchView.getQuery().toString();
+            if (query.isEmpty()) {
+                Toast.makeText(this, "Search something before starring!", Toast.LENGTH_SHORT).show();
+            } else {
+                Geocoder geocoder = new Geocoder(MainActivity.this, Locale.getDefault());
+                try {
+                    List<Address> addresses = geocoder.getFromLocationName(query, 1);
+                    if (addresses != null && !addresses.isEmpty()) {
+                        Address address = addresses.get(0);
+                        double lat = address.getLatitude();
+                        double lon = address.getLongitude();
+
+                        GeoPoint point = new GeoPoint(lat, lon);
+
+
+                        Marker marker = new Marker(binding.mapView);
+                        marker.setPosition(point);
+                        marker.setTitle("⭐ Starred: " + query);
+                        Drawable icon = getResources().getDrawable(R.drawable.star); // your star icon
+                        marker.setIcon(icon);
+                        binding.mapView.getOverlays().add(marker);
+                        binding.mapView.invalidate();
+
+
+                        saveStarred(query, lat, lon);
+
+                        Toast.makeText(this, "Starred place saved!", Toast.LENGTH_SHORT).show();
+                    } else {
+                        Toast.makeText(this, "Location not found", Toast.LENGTH_SHORT).show();
+                    }
+                } catch (IOException e) {
+                    e.printStackTrace();
+                    Toast.makeText(this, "Geocoding failed!", Toast.LENGTH_SHORT).show();
+                }
             }
         });
     }
@@ -191,14 +261,17 @@ public class MainActivity extends AppCompatActivity implements
             Address address = addresses.get(0);
             GeoPoint point = new GeoPoint(address.getLatitude(), address.getLongitude());
 
-            // Update map
+
             binding.mapView.getController().setZoom(15.0);
             binding.mapView.getController().setCenter(point);
 
-            // Clear old markers
+
             binding.mapView.getOverlays().clear();
 
-            // Add marker
+
+            loadStarredPlaces();
+
+
             Marker marker = new Marker(binding.mapView);
             marker.setPosition(point);
             marker.setTitle(query);
@@ -217,6 +290,7 @@ public class MainActivity extends AppCompatActivity implements
             Toast.makeText(this, "Geocoding failed, please try again", Toast.LENGTH_SHORT).show();
         }
     }
+
 
     private boolean checkPermissions() {
         boolean allGranted = true;
@@ -280,10 +354,160 @@ public class MainActivity extends AppCompatActivity implements
 
     @Override
     public void onLocationUpdate(Location location) {
-        // Your existing location update code remains unchanged
-        // ... (speed alerts, incidents, speed cameras, etc.)
+        Log.d("SpeedAlert", "onLocationUpdate called. Location: " + location);
+        Log.d("SpeedAlert", "location.hasSpeed(): " + location.hasSpeed());
+        if (!location.hasSpeed()) {
+            Log.d("SpeedAlert", "No speed data in this location update. Skipping speed alert logic.");
+            return;
+        }
+        float speedMps = location.getSpeed(); // meters/second
+        float speedKmh = speedMps * 3.6f; // convert to km/h
+        double lat = location.getLatitude();
+        double lon = location.getLongitude();
+
+        // --- Speed Camera Alert Integration ---
+        AlertPreferenceHelper alertPreferenceHelper = new AlertPreferenceHelper(this);
+        if (alertPreferenceHelper.isSpeedCameraAlertEnabled()) {
+            Log.d("SpeedCameraAlert", "Speed Camera Alert is ENABLED");
+            double radiusKm = 2.0; // Search within 2km
+            OSMSpeedCameraFetcher.fetchSpeedCameras(lat, lon, radiusKm, cameras -> {
+                // Remove old speed camera markers
+                List<Marker> toRemove = new ArrayList<>();
+                for (org.osmdroid.views.overlay.Overlay overlay : binding.mapView.getOverlays()) {
+                    if (overlay instanceof Marker && "speed_camera".equals(((Marker) overlay).getSubDescription())) {
+                        toRemove.add((Marker) overlay);
+                    }
+                }
+                binding.mapView.getOverlays().removeAll(toRemove);
+
+                for (OSMSpeedCameraFetcher.SpeedCamera camera : cameras) {
+                    // Calculate distance to camera
+                    float[] results = new float[1];
+                    Location.distanceBetween(lat, lon, camera.lat, camera.lon, results);
+                    int distanceMeters = (int) results[0];
+
+                    // Only display marker and alert if within 400m
+                    if (distanceMeters <= 400) {
+                        // Add marker for each camera
+                        Marker marker = new Marker(binding.mapView);
+                        marker.setPosition(new GeoPoint(camera.lat, camera.lon));
+                        marker.setTitle("Speed Camera");
+                        marker.setSubDescription("speed_camera");
+                        Drawable icon = ContextCompat.getDrawable(this, R.drawable.ic_camera_red);
+                        if (icon != null) marker.setIcon(icon);
+                        binding.mapView.getOverlays().add(marker);
+
+                        // Use lat/lon as a unique camera ID for this session
+                        String cameraId = camera.lat + "," + camera.lon;
+
+                        if (!alertedSpeedCameraIds.contains(cameraId)) {
+                            Log.d("SpeedCameraAlert", "Speed camera detected: " + cameraId + " at " + distanceMeters + "m");
+                            Log.d("SpeedCameraAlert", "Sending speed camera notification now.");
+                            AlertsNotification.sendSpeedCameraAlert(
+                                    this,
+                                    "Speed Camera Ahead!",
+                                    "A fixed speed camera is detected ahead."
+                            );
+                            alertedSpeedCameraIds.add(cameraId);
+                        }
+                    }
+                }
+                binding.mapView.invalidate();
+            });
+        } else {
+            Log.d("SpeedCameraAlert", "Speed Camera Alert is DISABLED");
+        }
+
+        // --- Road Incident Alert Integration ---
+        if (alertPreferenceHelper.isRoadIncidentAlertEnabled()) {
+            Log.d("IncidentAlert", "Road Incident Alert is ENABLED");
+            double radiusKm = 2.0; // Search within 2km
+            MapQuestIncidentsFetcher.fetchIncidents(lat, lon, radiusKm, incidents -> {
+                // Remove old incident markers
+                List<Marker> toRemove = new ArrayList<>();
+                for (org.osmdroid.views.overlay.Overlay overlay : binding.mapView.getOverlays()) {
+                    if (overlay instanceof Marker && "incident".equals(((Marker) overlay).getSubDescription())) {
+                        toRemove.add((Marker) overlay);
+                    }
+                }
+                binding.mapView.getOverlays().removeAll(toRemove);
+
+                for (MapQuestIncidentsFetcher.Incident incident : incidents) {
+                    // Add marker for each incident
+                    Marker marker = new Marker(binding.mapView);
+                    marker.setPosition(new GeoPoint(incident.lat, incident.lon));
+                    marker.setTitle("Incident");
+                    marker.setSubDescription("incident");
+                    marker.setSnippet(incident.description);
+                    Drawable icon = ContextCompat.getDrawable(this, R.drawable.ic_warning_yellow);
+                    if (icon != null) marker.setIcon(icon);
+                    binding.mapView.getOverlays().add(marker);
+
+                    // Calculate distance to incident
+                    float[] results = new float[1];
+                    Location.distanceBetween(lat, lon, incident.lat, incident.lon, results);
+                    int distanceMeters = (int) results[0];
+
+                    // Use lat/lon as a unique incident ID for this session
+                    String incidentId = incident.lat + "," + incident.lon;
+
+                    if (distanceMeters <= 800 && !alertedIncidentIds.contains(incidentId)) {
+                        Log.d("IncidentAlert", "Incident ahead within 800m: " + incident.description);
+                        AlertsNotification.sendRoadIncidentAlert(
+                                this,
+                                "Road Incident Ahead! (" + distanceMeters + "m)",
+                                "Please be cautious."
+                        );
+                        alertedIncidentIds.add(incidentId);
+                    }
+                }
+                binding.mapView.invalidate();
+            });
+        } else {
+            Log.d("IncidentAlert", "Road Incident Alert is DISABLED");
+        }
+
+        // --- Existing Speed Limit Alert Logic ---
+        OSMMaxSpeedFetcher.fetchMaxSpeed(lat, lon, maxSpeedKmh -> {
+            if (maxSpeedKmh != null) {
+                Log.d("SpeedAlert", "Fetched speed limit from OSM: " + maxSpeedKmh + " km/h");
+                currentSpeedLimit = maxSpeedKmh;
+                checkSpeedAndAlert(speedKmh, currentSpeedLimit);
+            } else {
+                Log.d("SpeedAlert", "No speed limit found from OSM. No alert will be triggered.");
+                // Do not set a default speed limit or trigger alert
+            }
+        });
     }
 
+    private void checkSpeedAndAlert(float speedKmh, int speedLimit) {
+        AlertPreferenceHelper alertPreferenceHelper = new AlertPreferenceHelper(this);
+        if (alertPreferenceHelper.isSpeedLimitAlertEnabled()) {
+            Log.d("SpeedAlert", "Speed Limit Alert is ENABLED");
+            if (speedKmh > speedLimit) {
+                if (!hasAlertedSpeedLimit) {
+                    String message = "Please slow down.\nCurrent Speed: " + String.format("%.1f", speedKmh) + " km/h";
+                    Log.d("SpeedAlert", "Speed exceeds limit! Sending notification.");
+                    AlertsNotification.sendSpeedLimitAlert(
+                            this,
+                            "Speed Alert! (>" + speedLimit + ")",
+                            message
+                    );
+                    hasAlertedSpeedLimit = true;
+                } else {
+                    Log.d("SpeedAlert", "Already alerted for this overspeeding session. No new alert.");
+                }
+            } else {
+                if (hasAlertedSpeedLimit) {
+                    Log.d("SpeedAlert", "Speed dropped below or equals limit. Resetting alert flag.");
+                }
+                hasAlertedSpeedLimit = false;
+                Log.d("SpeedAlert", "Speed is within limit. No alert. (speedKmh=" + speedKmh + ", limit=" + speedLimit + ")");
+            }
+        } else {
+            Log.d("SpeedAlert", "Speed Limit Alert is DISABLED");
+        }
+    }
     private void onNavigateClicked() {
         if (selectedLocation == null) {
             Toast.makeText(this, "Please select a location on the map first", Toast.LENGTH_SHORT).show();
@@ -341,17 +565,54 @@ public class MainActivity extends AppCompatActivity implements
         mapManager.stopLocationUpdates();
     }
 
-    // Handle returning from Bookmark (which can return from FavouritesActivity)
+
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
 
         if (requestCode == REQUEST_CODE_BOOKMARK && resultCode == RESULT_OK && data != null) {
-            String favLocation = data.getStringExtra("selected_location");
-            if (favLocation != null && !favLocation.isEmpty()) {
-                // Set the query in SearchView and perform search automatically
-                binding.searchView.setQuery(favLocation, true);
+            String name = data.getStringExtra("starred_name");
+            double lat = data.getDoubleExtra("starred_lat", 0);
+            double lon = data.getDoubleExtra("starred_lon", 0);
+
+            if (name != null && lat != 0 && lon != 0) {
+                GeoPoint point = new GeoPoint(lat, lon);
+
+
+                binding.mapView.getController().setZoom(15.0);
+                binding.mapView.getController().setCenter(point);
+
+
+                binding.mapView.getOverlays().clear();
+                loadStarredPlaces();
+
+
+                Marker marker = new Marker(binding.mapView);
+                marker.setPosition(point);
+                marker.setTitle("⭐ Starred: " + name);
+                Drawable icon = getResources().getDrawable(R.drawable.star);
+                marker.setIcon(icon);
+                binding.mapView.getOverlays().add(marker);
+
+                binding.mapView.invalidate();
+
+
+                binding.locationInfo.setText(String.format("Starred Place: %s\nLat: %.6f, Lon: %.6f", name, lat, lon));
+                binding.btnNavigate.setEnabled(true);
+
+
+                selectedLocation = point;
+
+            } else {
+
+                String placeName = data.getStringExtra("selected_location");
+                if (placeName != null && !placeName.isEmpty()) {
+
+                    performSearch(placeName);
+                }
             }
         }
     }
+
 }
+

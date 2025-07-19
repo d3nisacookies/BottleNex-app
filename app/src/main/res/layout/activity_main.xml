@@ -81,7 +81,16 @@
                 android:src="@drawable/favourite"
                 android:background="?attr/selectableItemBackgroundBorderless"
                 android:contentDescription="Add to Favorite"/>
-
+            <ImageButton
+                android:id="@+id/btnStarred"
+                android:layout_width="36dp"
+                android:layout_height="match_parent"
+                android:layout_gravity="end|center_vertical"
+                android:layout_marginEnd="90dp"
+                android:padding="6dp"
+                android:src="@drawable/star"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:contentDescription="Add to Starred Places"/>
         </FrameLayout>
         <FrameLayout
             android:id="@+id/destinationSearchBarContainer"
