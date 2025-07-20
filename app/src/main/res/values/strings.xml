@@ -1,3 +1,10 @@
 <resources>
     <string name="app_name">BottleNex</string>
+    <string name="default_name">John Doe</string>
+    <string name="default_bod">01/01/1990</string>
+    <string name="default_phone">+1234567890</string>
+    <string name="default_postcode">12345</string>
+    <string name="date_of_birth_label">Date of Birth: %1$s</string>
+    <string name="phone_label">Phone: %1$s</string>
+    <string name="postcode_label">Postcode: %1$s</string>
 </resources>
