@@ -2,7 +2,6 @@ package com.example.bottlenex;
 
 import android.content.Intent;
 import android.os.Bundle;
-import android.view.View;
 import android.widget.Toast;
 
 import androidx.activity.EdgeToEdge;
@@ -12,11 +11,15 @@ import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
 
 import com.example.bottlenex.databinding.ActivityLoginBinding;
+import com.google.firebase.auth.FirebaseAuth;
+
+import java.util.Objects;
 
 public class LoginActivity extends AppCompatActivity {
 
     ActivityLoginBinding binding;
-    DatabaseHelper databaseHelper;
+    // DatabaseHelper databaseHelper; // Remove if not needed
+    private FirebaseAuth mAuth;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -30,37 +33,32 @@ public class LoginActivity extends AppCompatActivity {
             return insets;
         });
 
-        databaseHelper = new DatabaseHelper(this);
+        mAuth = FirebaseAuth.getInstance();
 
-        binding.loginButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                String username = binding.loginUsername.getText().toString();
-                String password = binding.loginPassword.getText().toString();
+        binding.loginButton.setOnClickListener(v -> {
+            String username = binding.loginUsername.getText().toString().trim();
+            String password = binding.loginPassword.getText().toString().trim();
 
-                if (username.isEmpty() || password.isEmpty()){
-                    Toast.makeText(LoginActivity.this, "All fields Required", Toast.LENGTH_SHORT).show();
-                } else {
-                    Boolean checkdetails = databaseHelper.checkUsernamePassword(username, password);
-
-                    if (checkdetails) {
-                        Toast.makeText(LoginActivity.this, "All fields Required", Toast.LENGTH_SHORT).show();
-                        Intent intent = new Intent(getApplicationContext(), MainActivity.class);
-                        startActivity(intent);
-                    } else {
-                        Toast.makeText(LoginActivity.this, "Invalid Details", Toast.LENGTH_SHORT).show();
-                    }
-                }
-
+            if (username.isEmpty() || password.isEmpty()){
+                Toast.makeText(LoginActivity.this, "All fields Required", Toast.LENGTH_SHORT).show();
+            } else {
+                mAuth.signInWithEmailAndPassword(username, password)
+                    .addOnCompleteListener(task -> {
+                        if (task.isSuccessful()) {
+                            Toast.makeText(LoginActivity.this, "Login Successful", Toast.LENGTH_SHORT).show();
+                            Intent intent = new Intent(getApplicationContext(), MainActivity.class);
+                            startActivity(intent);
+                            finish();
+                        } else {
+                            Toast.makeText(LoginActivity.this, "Login Failed: " + Objects.requireNonNull(task.getException()).getMessage(), Toast.LENGTH_SHORT).show();
+                        }
+                    });
             }
         });
 
-        binding.signupRedirectText.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                Intent intent = new Intent(LoginActivity.this, SignupActivity.class);
-                startActivity(intent);
-            }
+        binding.signupRedirectText.setOnClickListener(v -> {
+            // Code that was intended for when the signup text was clicked
+            // Now it might show a Toast or do nothing
         });
     }
 }
