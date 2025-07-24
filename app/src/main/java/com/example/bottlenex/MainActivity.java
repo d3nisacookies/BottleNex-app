@@ -47,7 +47,7 @@ import android.graphics.drawable.Drawable;
 import java.util.HashSet;
 import java.util.Set;
 import com.example.bottlenex.OSMSpeedCameraFetcher;
-
+import android.view.View;
 
 
 
@@ -81,6 +81,7 @@ public class MainActivity extends AppCompatActivity implements
     private Integer currentSpeedLimit = null;
     private Set<String> alertedIncidentIds = new HashSet<>();
     private Set<String> alertedSpeedCameraIds = new HashSet<>();
+    private boolean isNavigating = false;
 
     private void saveStarred(String name, double lat, double lon) {
         SharedPreferences prefs = getSharedPreferences("starred_places", MODE_PRIVATE);
@@ -254,6 +255,14 @@ public class MainActivity extends AppCompatActivity implements
                     e.printStackTrace();
                     Toast.makeText(this, "Geocoding failed!", Toast.LENGTH_SHORT).show();
                 }
+            }
+        });
+
+        binding.btnJourney.setOnClickListener(v -> {
+            if (!isNavigating) {
+                startJourney();
+            } else {
+                finishJourney();
             }
         });
     }
@@ -542,6 +551,9 @@ public class MainActivity extends AppCompatActivity implements
                     mapManager.drawRoute(routePoints);
                     String info = String.format("Route: %.2f km, %.2f min", distance / 1000.0, duration / 60.0);
                     binding.locationInfo.setText(info);
+                    binding.btnJourney.setVisibility(View.VISIBLE);
+                    binding.btnJourney.setText("Start Navigation");
+                    binding.tvJourneyState.setVisibility(View.GONE);
                 });
             }
             @Override
@@ -551,6 +563,22 @@ public class MainActivity extends AppCompatActivity implements
                 });
             }
         });
+    }
+
+    private void startJourney() {
+        isNavigating = true;
+        binding.btnJourney.setText("Finish Navigation");
+        binding.tvJourneyState.setText("You are currently in a journey");
+        binding.tvJourneyState.setVisibility(View.VISIBLE);
+        // Optionally, disable map interaction or other UI changes
+    }
+
+    private void finishJourney() {
+        isNavigating = false;
+        binding.btnJourney.setText("Start Navigation");
+        binding.tvJourneyState.setText("");
+        binding.tvJourneyState.setVisibility(View.GONE);
+        // Optionally, re-enable map interaction or reset UI
     }
 
     @Override

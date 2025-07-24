@@ -6,7 +6,7 @@ import android.widget.Button;
 import android.widget.TextView;
 import androidx.appcompat.app.AppCompatActivity;
 import com.example.bottlenex.EditProfileActivity;
-import com.example.bottlenex.PaymentActivity;
+//import com.example.bottlenex.PaymentActivity;
 
 public class ProfileActivity extends AppCompatActivity {
 
@@ -40,8 +40,8 @@ public class ProfileActivity extends AppCompatActivity {
 
         btnPayment.setOnClickListener(v -> {
             // Show payment details
-            Intent intent = new Intent(ProfileActivity.this, PaymentActivity.class);
-            startActivity(intent);
+            //Intent intent = new Intent(ProfileActivity.this, PaymentActivity.class);
+            //startActivity(intent);
         });
 
         btnLogout.setOnClickListener(v -> {
