@@ -55,10 +55,5 @@ public class LoginActivity extends AppCompatActivity {
                     });
             }
         });
-
-        binding.signupRedirectText.setOnClickListener(v -> {
-            // Code that was intended for when the signup text was clicked
-            // Now it might show a Toast or do nothing
-        });
     }
 }

@@ -25,6 +25,7 @@ import com.example.bottlenex.databinding.ActivityMainBinding;
 import com.example.bottlenex.map.MapManager;
 import com.example.bottlenex.services.FirebaseService;
 import com.google.firebase.auth.FirebaseUser;
+import com.google.firebase.auth.FirebaseAuth;
 import com.example.bottlenex.routing.RoutePlanner;
 import org.osmdroid.util.GeoPoint;
 import java.util.ArrayList;
@@ -119,6 +120,15 @@ public class MainActivity extends AppCompatActivity implements
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
+        // Check if user is authenticated
+        if (FirebaseAuth.getInstance().getCurrentUser() == null) {
+            // User is not logged in, redirect to LoginActivity
+            Intent intent = new Intent(this, LoginActivity.class);
+            startActivity(intent);
+            finish();
+            return;
+        }
+
         // Edge-to-edge implementation from first file
         EdgeToEdge.enable(this);
         binding = ActivityMainBinding.inflate(getLayoutInflater());
@@ -190,9 +200,11 @@ public class MainActivity extends AppCompatActivity implements
             });
         }
 
-        // Old search buttons (optional)
-        binding.btnSearchRight.setOnClickListener(v ->
-                Toast.makeText(this, "Profile Clicked", Toast.LENGTH_SHORT).show());
+        // Profile button - navigate to ProfileActivity
+        binding.btnSearchRight.setOnClickListener(v -> {
+            Intent intent = new Intent(MainActivity.this, ProfileActivity.class);
+            startActivity(intent);
+        });
 
         // Navigation button
         binding.btnNavigate.setOnClickListener(v -> onNavigateClicked());

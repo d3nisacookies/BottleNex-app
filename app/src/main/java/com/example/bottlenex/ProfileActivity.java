@@ -6,6 +6,8 @@ import android.widget.Button;
 import android.widget.TextView;
 import androidx.appcompat.app.AppCompatActivity;
 import com.example.bottlenex.EditProfileActivity;
+import com.google.firebase.auth.FirebaseAuth;
+import android.widget.Toast;
 //import com.example.bottlenex.PaymentActivity;
 
 public class ProfileActivity extends AppCompatActivity {
@@ -46,8 +48,14 @@ public class ProfileActivity extends AppCompatActivity {
 
         btnLogout.setOnClickListener(v -> {
             // Handle logout logic
-            // TODO: Implement actual logout (clear session, etc.)
-            finish(); // Close this activity
+            FirebaseAuth.getInstance().signOut();
+            Toast.makeText(ProfileActivity.this, "Logged out successfully", Toast.LENGTH_SHORT).show();
+            
+            // Navigate back to LoginActivity
+            Intent intent = new Intent(ProfileActivity.this, LoginActivity.class);
+            intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+            startActivity(intent);
+            finish();
         });
     }
 }
