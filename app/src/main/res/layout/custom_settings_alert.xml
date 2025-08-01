@@ -12,26 +12,23 @@
         android:id="@+id/titleText"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="You"
-        android:textColor="#000000"
-        android:textSize="24sp"
+        android:text="Alert Settings"
+        android:textColor="#FFFFFF"
+        android:textSize="28sp"
         android:textStyle="bold"
         android:gravity="center"
-        android:paddingTop="20dp"
-        android:paddingBottom="10dp" />
+        android:paddingTop="32dp"
+        android:paddingBottom="20dp" />
 
-    <!-- Button -->
-    <Button
-        android:id="@+id/customAlertsButton"
-        android:layout_width="wrap_content"
+    <!-- Subtitle -->
+    <TextView
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_gravity="start"
-        android:layout_marginLeft="10dp"
-        android:layout_marginBottom="20dp"
-        android:backgroundTint="#444444"
-        android:padding="8dp"
-        android:text="Custom Alerts"
-        android:textColor="#FFFFFF" />
+        android:text="Configure your navigation alerts"
+        android:textColor="#B3E5FC"
+        android:textSize="16sp"
+        android:gravity="center"
+        android:paddingBottom="20dp" />
 
     <!-- Alert Options -->
     <LinearLayout
@@ -43,78 +40,141 @@
         <!-- Speed Limit Alert -->
         <LinearLayout
             android:layout_width="match_parent"
-            android:layout_height="60dp"
-            android:orientation="horizontal"
-            android:gravity="center_vertical"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
             android:background="#0099FF"
-            android:layout_marginBottom="5dp"
-            android:paddingHorizontal="10dp">
+            android:layout_marginBottom="10dp"
+            android:padding="16dp">
 
-            <TextView
-                android:id="@+id/speedLimitText"
-                android:layout_width="0dp"
+            <LinearLayout
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="Speed Limit Alert"
-                android:textSize="16sp"
-                android:layout_weight="1"
-                android:textColor="#FFFFFF" />
+                android:orientation="horizontal"
+                android:gravity="center_vertical">
 
-            <Switch
-                android:id="@+id/switchSpeedLimit"
-                android:layout_width="48dp"
-                android:layout_height="48dp"
-                android:checked="true" />
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:orientation="vertical">
+
+                    <TextView
+                        android:id="@+id/speedLimitText"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="Speed Limit Alert"
+                        android:textSize="18sp"
+                        android:textStyle="bold"
+                        android:textColor="#FFFFFF" />
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="Get notified when you exceed the speed limit"
+                        android:textSize="14sp"
+                        android:textColor="#B3E5FC"
+                        android:layout_marginTop="4dp" />
+                </LinearLayout>
+
+                <Switch
+                    android:id="@+id/switchSpeedLimit"
+                    android:layout_width="48dp"
+                    android:layout_height="48dp"
+                    android:checked="true" />
+            </LinearLayout>
         </LinearLayout>
 
         <!-- Road Incident Alert -->
         <LinearLayout
             android:layout_width="match_parent"
-            android:layout_height="60dp"
-            android:orientation="horizontal"
-            android:gravity="center_vertical"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
             android:background="#0099FF"
-            android:layout_marginBottom="5dp"
-            android:paddingHorizontal="10dp">
+            android:layout_marginBottom="10dp"
+            android:padding="16dp">
 
-            <TextView
-                android:id="@+id/roadIncidentText"
-                android:layout_width="0dp"
+            <LinearLayout
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="Road Incident Alert"
-                android:textSize="16sp"
-                android:layout_weight="1"
-                android:textColor="#FFFFFF" />
+                android:orientation="horizontal"
+                android:gravity="center_vertical">
 
-            <Switch
-                android:id="@+id/switchRoadIncident"
-                android:layout_width="48dp"
-                android:layout_height="48dp"
-                android:checked="true" />
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:orientation="vertical">
+
+                    <TextView
+                        android:id="@+id/roadIncidentText"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="Road Incident Alert"
+                        android:textSize="18sp"
+                        android:textStyle="bold"
+                        android:textColor="#FFFFFF" />
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="Get notified about traffic incidents ahead"
+                        android:textSize="14sp"
+                        android:textColor="#B3E5FC"
+                        android:layout_marginTop="4dp" />
+                </LinearLayout>
+
+                <Switch
+                    android:id="@+id/switchRoadIncident"
+                    android:layout_width="48dp"
+                    android:layout_height="48dp"
+                    android:checked="true" />
+            </LinearLayout>
         </LinearLayout>
 
         <!-- Speed Camera Early Warning Alert -->
         <LinearLayout
             android:layout_width="match_parent"
-            android:layout_height="60dp"
-            android:orientation="horizontal"
-            android:gravity="center_vertical"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
             android:background="#0099FF"
-            android:paddingHorizontal="10dp">
+            android:padding="16dp">
 
-            <TextView
-                android:id="@+id/speedCameraText"
-                android:layout_width="0dp"
+            <LinearLayout
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="Speed Camera Early Warning Alert"
-                android:textSize="16sp"
-                android:layout_weight="1"
-                android:textColor="#FFFFFF" />
+                android:orientation="horizontal"
+                android:gravity="center_vertical">
 
-            <Switch
-                android:id="@+id/switchSpeedCamera"
-                android:layout_width="48dp"
-                android:layout_height="48dp"
-                android:checked="true" />
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:orientation="vertical">
+
+                    <TextView
+                        android:id="@+id/speedCameraText"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="Speed Camera Alert"
+                        android:textSize="18sp"
+                        android:textStyle="bold"
+                        android:textColor="#FFFFFF" />
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="Get notified about speed cameras ahead"
+                        android:textSize="14sp"
+                        android:textColor="#B3E5FC"
+                        android:layout_marginTop="4dp" />
+                </LinearLayout>
+
+                <Switch
+                    android:id="@+id/switchSpeedCamera"
+                    android:layout_width="48dp"
+                    android:layout_height="48dp"
+                    android:checked="true" />
+            </LinearLayout>
         </LinearLayout>
     </LinearLayout>
 </LinearLayout>

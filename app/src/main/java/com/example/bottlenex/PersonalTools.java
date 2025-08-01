@@ -31,7 +31,11 @@ public class PersonalTools extends AppCompatActivity {
 
         btnReportBug.setOnClickListener(v -> {
             startActivity(new Intent(PersonalTools.this, BugReportActivity.class));
+        });
 
+        Button btnAlertSettings = findViewById(R.id.btnAlertSettings);
+        btnAlertSettings.setOnClickListener(v -> {
+            startActivity(new Intent(PersonalTools.this, AlertSettingsActivity.class));
         });
     }
 }
