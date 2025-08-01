@@ -1,7 +1,15 @@
 package com.example.bottlenex.services;
 
+import android.content.Context;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.net.Uri;
+import android.util.Base64;
 import android.util.Log;
+import android.widget.Toast;
+import androidx.core.content.FileProvider;
+import java.io.ByteArrayOutputStream;
+import java.io.InputStream;
 
 import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.OnFailureListener;
@@ -10,9 +18,7 @@ import com.google.firebase.auth.AuthResult;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.firestore.FirebaseFirestore;
-import com.google.firebase.storage.FirebaseStorage;
-import com.google.firebase.storage.StorageReference;
-import com.google.firebase.storage.UploadTask;
+// Firebase Storage imports removed - using Base64 for now
 
 import java.util.HashMap;
 import java.util.Map;
@@ -27,13 +33,13 @@ public class FirebaseService {
 
     private final FirebaseAuth auth;
     private final FirebaseFirestore firestore;
-    private final FirebaseStorage storage;
+    // FirebaseStorage removed - using Base64 for now
 
     @Inject
     public FirebaseService(FirebaseAuth auth, FirebaseFirestore firestore) {
         this.auth = auth;
         this.firestore = firestore;
-        this.storage = FirebaseStorage.getInstance();
+        // FirebaseStorage removed - using Base64 for now
     }
 
     // Authentication methods
@@ -52,12 +58,25 @@ public class FirebaseService {
     }
 
     // Firestore: Save Bug Report
-    public void saveBugReport(String title, String description, OnSuccessListener<Void> successListener, OnFailureListener failureListener, String screenshotUrl) {
+    public void saveBugReport(String title, String description, OnSuccessListener<Void> successListener, OnFailureListener failureListener, String screenshotData) {
         Map<String, Object> bugReport = new HashMap<>();
         bugReport.put("title", title);
         bugReport.put("description", description);
-        if (screenshotUrl != null) {
-            bugReport.put("screenshots", screenshotUrl);
+        bugReport.put("timestamp", System.currentTimeMillis());
+        
+        if (screenshotData != null) {
+            // Check if it's a Base64 image or a URL
+            if (screenshotData.startsWith("data:image") || screenshotData.length() > 100) {
+                // It's a Base64 image
+                bugReport.put("screenshot_base64", screenshotData);
+                bugReport.put("has_screenshot", true);
+            } else {
+                // It's a URL (for future Firebase Storage use)
+                bugReport.put("screenshot_url", screenshotData);
+                bugReport.put("has_screenshot", true);
+            }
+        } else {
+            bugReport.put("has_screenshot", false);
         }
 
         firestore.collection("bugs")
@@ -109,33 +128,60 @@ public class FirebaseService {
                 .addOnFailureListener(e -> Log.e(TAG, "Error saving location", e));
     }
 
-    // Firebase Storage: Upload screenshot
-    public void uploadScreenshot(Uri imageUri, OnSuccessListener<String> successListener, OnFailureListener failureListener) {
-        StorageReference storageRef = storage.getReference();
-        StorageReference imageRef = storageRef.child("screenshots/" + System.currentTimeMillis() + ".jpg");
+    // Convert image to Base64 for Firestore storage
+    public void convertImageToBase64(Context context, Uri imageUri, OnSuccessListener<String> successListener, OnFailureListener failureListener) {
+        Log.d(TAG, "Starting image conversion to Base64. URI: " + imageUri.toString());
+        
+        try {
+            // Read the image from URI
+            InputStream inputStream = context.getContentResolver().openInputStream(imageUri);
+            if (inputStream == null) {
+                Log.e(TAG, "Failed to open input stream for image");
+                failureListener.onFailure(new Exception("Failed to read image"));
+                return;
+            }
 
-        UploadTask uploadTask = imageRef.putFile(imageUri);
-        uploadTask.addOnSuccessListener(taskSnapshot -> {
-            imageRef.getDownloadUrl()
-                    .addOnSuccessListener(uri -> {
-                        Log.d(TAG, "Screenshot uploaded successfully: " + uri.toString());
-                        successListener.onSuccess(uri.toString());
-                    })
-                    .addOnFailureListener(e -> {
-                        Log.e(TAG, "Failed to get screenshot download URL", e);
-                        failureListener.onFailure(e);
-                    });
-        }).addOnFailureListener(e -> {
-            Log.e(TAG, "Failed to upload screenshot", e);
+            // Decode the image
+            Bitmap bitmap = BitmapFactory.decodeStream(inputStream);
+            if (bitmap == null) {
+                Log.e(TAG, "Failed to decode bitmap from image");
+                failureListener.onFailure(new Exception("Failed to decode image"));
+                return;
+            }
+
+            // Compress and convert to Base64
+            ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
+            // Compress with 70% quality to reduce size
+            bitmap.compress(Bitmap.CompressFormat.JPEG, 70, byteArrayOutputStream);
+            byte[] imageBytes = byteArrayOutputStream.toByteArray();
+            
+            // Convert to Base64
+            String base64Image = Base64.encodeToString(imageBytes, Base64.DEFAULT);
+            
+            Log.d(TAG, "Image converted to Base64 successfully. Size: " + base64Image.length() + " characters");
+            
+            // Check if image is too large (Firestore has 1MB document limit)
+            if (base64Image.length() > 800000) { // Leave some buffer
+                Log.w(TAG, "Image is too large for Firestore. Size: " + base64Image.length() + " characters");
+                Toast.makeText(context, "Image too large. Please select a smaller image.", Toast.LENGTH_LONG).show();
+                failureListener.onFailure(new Exception("Image too large for storage"));
+                return;
+            }
+            
+            successListener.onSuccess(base64Image);
+            
+        } catch (Exception e) {
+            Log.e(TAG, "Exception in convertImageToBase64", e);
             failureListener.onFailure(e);
-        });
+        }
     }
 
-    // Firebase Storage: Delete screenshot (optional)
-    public void deleteScreenshot(String imageUrl, OnSuccessListener<Void> successListener) {
-        StorageReference imageRef = storage.getReferenceFromUrl(imageUrl);
-        imageRef.delete()
-                .addOnSuccessListener(successListener)
-                .addOnFailureListener(e -> Log.e(TAG, "Error deleting screenshot", e));
+    // Firebase Storage: Upload screenshot (kept for future use when Storage is available)
+    public void uploadScreenshot(Context context, Uri imageUri, OnSuccessListener<String> successListener, OnFailureListener failureListener) {
+        Log.d(TAG, "Firebase Storage not available. Using Base64 conversion instead.");
+        convertImageToBase64(context, imageUri, successListener, failureListener);
     }
+
+    // Note: Screenshot deletion not available with Base64 storage
+    // When Firebase Storage is available, this method can be restored
 }

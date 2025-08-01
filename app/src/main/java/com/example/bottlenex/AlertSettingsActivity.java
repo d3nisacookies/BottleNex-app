@@ -29,6 +29,14 @@ public class AlertSettingsActivity extends AppCompatActivity {
         switchRoadIncident = findViewById(R.id.switchRoadIncident);
         switchSpeedCamera = findViewById(R.id.switchSpeedCamera);
 
+        // Setup toolbar with back button
+        com.google.android.material.appbar.MaterialToolbar toolbar = findViewById(R.id.toolbar);
+        setSupportActionBar(toolbar);
+        if (getSupportActionBar() != null) {
+            getSupportActionBar().setDisplayHomeAsUpEnabled(true);
+            getSupportActionBar().setDisplayShowHomeEnabled(true);
+        }
+
         // Load current settings
         loadCurrentSettings();
 
@@ -65,5 +73,11 @@ public class AlertSettingsActivity extends AppCompatActivity {
 
     private void showToast(String message) {
         Toast.makeText(this, message, Toast.LENGTH_SHORT).show();
+    }
+
+    @Override
+    public boolean onSupportNavigateUp() {
+        onBackPressed();
+        return true;
     }
 } 

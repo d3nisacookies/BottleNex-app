@@ -39,26 +39,17 @@
             android:paddingEnd="12dp">
 
             <!-- Left Search Icon Button -->
-            <ImageButton
-                android:id="@+id/btnSearchLeft"
-                android:layout_width="36dp"
-                android:layout_height="match_parent"
-                android:background="?attr/selectableItemBackgroundBorderless"
-                android:contentDescription="Search Icon"
-                android:src="@android:drawable/ic_menu_search"
-                android:layout_gravity="start|center_vertical"
-                android:padding="6dp" />
 
             <!-- SEARCH VIEW replacing old TextView -->
             <SearchView
                 android:id="@+id/searchView"
-                android:layout_width="match_parent"
+                android:layout_width="237dp"
                 android:layout_height="match_parent"
-                android:queryHint="Search location"
+                android:background="@android:color/transparent"
                 android:iconifiedByDefault="false"
-                android:paddingStart="44dp"
+                android:paddingStart="5dp"
                 android:paddingEnd="44dp"
-                android:background="@android:color/transparent" />
+                android:queryHint="Search location" />
 
             <!-- Right Mic Icon Button -->
             <ImageButton
@@ -92,28 +83,6 @@
                 android:background="?attr/selectableItemBackgroundBorderless"
                 android:contentDescription="Add to Starred Places"/>
         </FrameLayout>
-        <FrameLayout
-            android:id="@+id/destinationSearchBarContainer"
-            android:layout_width="match_parent"
-            android:layout_height="56dp"
-            android:layout_marginStart="12dp"
-            android:layout_marginEnd="12dp"
-            android:layout_marginBottom="8dp"
-            android:layout_marginTop="8dp"
-            android:background="@drawable/search_background"
-            android:layout_gravity="bottom"
-            android:paddingStart="12dp"
-            android:paddingEnd="12dp">
-
-            <SearchView
-                android:id="@+id/destinationSearchView"
-                android:layout_width="match_parent"
-                android:layout_height="match_parent"
-                android:queryHint="Enter destination"
-                android:iconifiedByDefault="false"
-                android:background="@android:color/transparent" />
-        </FrameLayout>
-
 
 
     </com.google.android.material.appbar.AppBarLayout>

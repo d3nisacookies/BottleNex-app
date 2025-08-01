@@ -3,6 +3,7 @@ package com.example.bottlenex;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
+import android.util.Log;
 import android.widget.Toast;
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
@@ -49,8 +50,13 @@ public class BugReportActivity extends AppCompatActivity {
         MaterialButton btnUpload = findViewById(R.id.btnUploadScreenshot);
         btnUpload.setOnClickListener(v -> selectScreenshot());
 
-        // Optional: Handle toolbar back button
-        findViewById(R.id.toolbar).setOnClickListener(v -> finish());
+        // Setup toolbar with back button
+        com.google.android.material.appbar.MaterialToolbar toolbar = findViewById(R.id.toolbar);
+        setSupportActionBar(toolbar);
+        if (getSupportActionBar() != null) {
+            getSupportActionBar().setDisplayHomeAsUpEnabled(true);
+            getSupportActionBar().setDisplayShowHomeEnabled(true);
+        }
     }
     
     private void submitBugReport() {
@@ -63,15 +69,16 @@ public class BugReportActivity extends AppCompatActivity {
         }
         
         if (selectedImageUri != null) {
-            firebaseService.uploadScreenshot(selectedImageUri, screenshotUrl -> {
+            firebaseService.uploadScreenshot(this, selectedImageUri, screenshotData -> {
                 firebaseService.saveBugReport(title, description, aVoid -> {
                     Toast.makeText(this, "Bug report submitted with screenshot!", Toast.LENGTH_SHORT).show();
                     finish();
                 }, e -> {
                     Toast.makeText(this, "Failed to submit bug report", Toast.LENGTH_SHORT).show();
-                }, screenshotUrl);
+                }, screenshotData);
             }, e -> {
-                Toast.makeText(this, "Failed to upload screenshot", Toast.LENGTH_SHORT).show();
+                Log.e("BugReport", "Failed to process screenshot", e);
+                Toast.makeText(this, "Failed to process screenshot: " + e.getMessage(), Toast.LENGTH_LONG).show();
             });
         } else {
             firebaseService.saveBugReport(title, description, aVoid -> {
@@ -85,5 +92,11 @@ public class BugReportActivity extends AppCompatActivity {
     
     private void selectScreenshot() {
         imagePickerLauncher.launch("image/*");
+    }
+
+    @Override
+    public boolean onSupportNavigateUp() {
+        onBackPressed();
+        return true;
     }
 } 
