@@ -3,199 +3,66 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    android:background="#2196F3">
+    android:background="#F5F5F5">
 
-    <TextView
-        android:id="@+id/tvPaymentTitle"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="Payment"
-        android:textSize="28sp"
-        android:textStyle="bold"
-        android:gravity="center"
-        android:paddingTop="32dp"
-        android:paddingBottom="16dp"
-        android:textColor="@android:color/white" />
-
-    <View
-        android:layout_width="match_parent"
-        android:layout_height="1dp"
-        android:background="#B3E5FC" />
-
+    <!-- Header -->
     <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_weight="1"
-        android:orientation="vertical">
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:background="#2196F3"
+        android:paddingTop="32dp"
+        android:paddingBottom="16dp">
 
-        <!-- January -->
-        <LinearLayout
+        <TextView
+            android:id="@+id/tvPaymentTitle"
             android:layout_width="match_parent"
-            android:layout_height="0dp"
-            android:layout_weight="1"
-            android:orientation="horizontal"
-            android:gravity="center_vertical"
-            android:background="#2196F3">
+            android:layout_height="wrap_content"
+            android:text="Payment History"
+            android:textSize="28sp"
+            android:textStyle="bold"
+            android:gravity="center"
+            android:textColor="@android:color/white" />
 
-            <TextView
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:text="Jan"
-                android:textSize="22sp"
-                android:textColor="@android:color/white"
-                android:paddingStart="24dp" />
-
-            <ImageView
-                android:id="@+id/downloadJan"
-                android:layout_width="wrap_content"
-                android:layout_height="44dp"
-                android:contentDescription="Download"
-                android:paddingEnd="24dp"
-                android:src="@android:drawable/stat_sys_download" />
-        </LinearLayout>
-        <View android:layout_width="match_parent" android:layout_height="1dp" android:background="#B3E5FC" />
-
-        <!-- February -->
-        <LinearLayout
+        <TextView
             android:layout_width="match_parent"
-            android:layout_height="0dp"
-            android:layout_weight="1"
-            android:orientation="horizontal"
-            android:gravity="center_vertical"
-            android:background="#2196F3">
-
-            <TextView
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:text="Feb"
-                android:textSize="22sp"
-                android:textColor="@android:color/white"
-                android:paddingStart="24dp" />
-
-            <ImageView
-                android:id="@+id/downloadFeb"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:contentDescription="Download"
-                android:paddingEnd="24dp"
-                android:src="@android:drawable/stat_sys_download" />
-        </LinearLayout>
-        <View android:layout_width="match_parent" android:layout_height="1dp" android:background="#B3E5FC" />
-
-        <!-- March -->
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="0dp"
-            android:layout_weight="1"
-            android:orientation="horizontal"
-            android:gravity="center_vertical"
-            android:background="#2196F3">
-
-            <TextView
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:text="Mar"
-                android:textSize="22sp"
-                android:textColor="@android:color/white"
-                android:paddingStart="24dp" />
-
-            <ImageView
-                android:id="@+id/downloadMar"
-                android:layout_width="wrap_content"
-                android:layout_height="44dp"
-                android:contentDescription="Download"
-                android:paddingEnd="24dp"
-                android:src="@android:drawable/stat_sys_download" />
-        </LinearLayout>
-        <View android:layout_width="match_parent" android:layout_height="1dp" android:background="#B3E5FC" />
-
-        <!-- April -->
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="0dp"
-            android:layout_weight="1"
-            android:orientation="horizontal"
-            android:gravity="center_vertical"
-            android:background="#2196F3">
-
-            <TextView
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:text="Apr"
-                android:textSize="22sp"
-                android:textColor="@android:color/white"
-                android:paddingStart="24dp" />
-
-            <ImageView
-                android:id="@+id/downloadApr"
-                android:layout_width="wrap_content"
-                android:layout_height="40dp"
-                android:contentDescription="Download"
-                android:paddingEnd="24dp"
-                android:src="@android:drawable/stat_sys_download" />
-        </LinearLayout>
-        <View android:layout_width="match_parent" android:layout_height="1dp" android:background="#B3E5FC" />
-
-        <!-- May -->
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="0dp"
-            android:layout_weight="1"
-            android:orientation="horizontal"
-            android:gravity="center_vertical"
-            android:background="#2196F3">
-
-            <TextView
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:text="May"
-                android:textSize="22sp"
-                android:textColor="@android:color/white"
-                android:paddingStart="24dp" />
-
-            <ImageView
-                android:id="@+id/downloadMay"
-                android:layout_width="wrap_content"
-                android:layout_height="41dp"
-                android:contentDescription="Download"
-                android:paddingEnd="24dp"
-                android:src="@android:drawable/stat_sys_download" />
-        </LinearLayout>
-        <View android:layout_width="match_parent" android:layout_height="1dp" android:background="#B3E5FC" />
-
-        <!-- June -->
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="0dp"
-            android:layout_weight="1"
-            android:orientation="horizontal"
-            android:gravity="center_vertical"
-            android:background="#2196F3">
-
-            <TextView
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:text="Jun"
-                android:textSize="22sp"
-                android:textColor="@android:color/white"
-                android:paddingStart="24dp" />
-
-            <ImageView
-                android:id="@+id/downloadJun"
-                android:layout_width="wrap_content"
-                android:layout_height="42dp"
-                android:contentDescription="Download"
-                android:paddingEnd="24dp"
-                android:src="@android:drawable/stat_sys_download" />
-        </LinearLayout>
+            android:layout_height="wrap_content"
+            android:text="Your subscription payment records"
+            android:textSize="14sp"
+            android:gravity="center"
+            android:layout_marginTop="4dp"
+            android:textColor="#B3E5FC" />
     </LinearLayout>
 
+    <!-- Content Area -->
+    <FrameLayout
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1">
+
+        <!-- RecyclerView for payment list -->
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/recyclerViewPayments"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:padding="8dp"
+            android:clipToPadding="false" />
+
+        <!-- No payments message -->
+        <TextView
+            android:id="@+id/tvNoPayments"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:text="No payment history found"
+            android:textSize="16sp"
+            android:textColor="#666666"
+            android:gravity="center"
+            android:visibility="gone" />
+
+    </FrameLayout>
+
+    <!-- Bottom Navigation Bar -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="70dp"
