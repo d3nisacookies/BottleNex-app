@@ -43,7 +43,7 @@ import dagger.hilt.android.AndroidEntryPoint;
 import com.example.bottlenex.AlertPreferenceHelper;
 import com.example.bottlenex.AlertsNotification;
 import com.example.bottlenex.OSMMaxSpeedFetcher;
-import com.example.bottlenex.MapQuestIncidentsFetcher;
+import com.example.bottlenex.TomTomIncidentsFetcher;
 import android.graphics.drawable.Drawable;
 import java.util.HashSet;
 import java.util.Set;
@@ -452,7 +452,7 @@ public class MainActivity extends AppCompatActivity implements
         if (alertPreferenceHelper.isRoadIncidentAlertEnabled()) {
             Log.d("IncidentAlert", "Road Incident Alert is ENABLED");
             double radiusKm = 2.0; // Search within 2km
-            MapQuestIncidentsFetcher.fetchIncidents(lat, lon, radiusKm, incidents -> {
+            TomTomIncidentsFetcher.fetchIncidents(lat, lon, radiusKm, incidents -> {
                 // Remove old incident markers
                 List<Marker> toRemove = new ArrayList<>();
                 for (org.osmdroid.views.overlay.Overlay overlay : binding.mapView.getOverlays()) {
@@ -462,7 +462,7 @@ public class MainActivity extends AppCompatActivity implements
                 }
                 binding.mapView.getOverlays().removeAll(toRemove);
 
-                for (MapQuestIncidentsFetcher.Incident incident : incidents) {
+                for (TomTomIncidentsFetcher.Incident incident : incidents) {
                     // Add marker for each incident
                     Marker marker = new Marker(binding.mapView);
                     marker.setPosition(new GeoPoint(incident.lat, incident.lon));
