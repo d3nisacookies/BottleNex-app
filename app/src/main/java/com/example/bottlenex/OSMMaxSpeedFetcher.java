@@ -24,7 +24,7 @@ public class OSMMaxSpeedFetcher {
     private static final OkHttpClient client = new OkHttpClient();
 
     public static void fetchMaxSpeed(double lat, double lon, MaxSpeedCallback callback) {
-        String query = "[out:json];way(around:20," + lat + "," + lon + ")[highway][maxspeed];out tags center 1;";
+        String query = "[out:json];way(around:3," + lat + "," + lon + ")[highway][maxspeed];out tags center 1;";
         String url = OVERPASS_URL + "?data=" + java.net.URLEncoder.encode(query);
 
         Request request = new Request.Builder().url(url).build();

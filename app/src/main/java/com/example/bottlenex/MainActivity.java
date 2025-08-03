@@ -81,6 +81,7 @@ public class MainActivity extends AppCompatActivity implements
     private Set<String> alertedIncidentIds = new HashSet<>();
     private Set<String> alertedSpeedCameraIds = new HashSet<>();
     private boolean isNavigating = false;
+    private Location lastSpeedAlertLocation = null; // Track location for 100m alerts
 
     private void saveStarred(String name, double lat, double lon) {
         SharedPreferences prefs = getSharedPreferences("starred_places", MODE_PRIVATE);
@@ -514,23 +515,42 @@ public class MainActivity extends AppCompatActivity implements
         if (alertPreferenceHelper.isSpeedLimitAlertEnabled()) {
             Log.d("SpeedAlert", "Speed Limit Alert is ENABLED");
             if (speedKmh > speedLimit) {
-                if (!hasAlertedSpeedLimit) {
-                    String message = "Please slow down.\nCurrent Speed: " + String.format("%.1f", speedKmh) + " km/h";
-                    Log.d("SpeedAlert", "Speed exceeds limit! Sending notification.");
-                    AlertsNotification.sendSpeedLimitAlert(
-                            this,
-                            "Speed Alert! (>" + speedLimit + ")",
-                            message
-                    );
-                    hasAlertedSpeedLimit = true;
-                } else {
-                    Log.d("SpeedAlert", "Already alerted for this overspeeding session. No new alert.");
+                // Get current location for distance tracking
+                Location currentLocation = mapManager.getLastKnownLocation();
+                if (currentLocation != null) {
+                    float distanceFromLastAlert = 0f;
+                    
+                    if (lastSpeedAlertLocation != null) {
+                        float[] results = new float[1];
+                        Location.distanceBetween(
+                            lastSpeedAlertLocation.getLatitude(), lastSpeedAlertLocation.getLongitude(),
+                            currentLocation.getLatitude(), currentLocation.getLongitude(),
+                            results
+                        );
+                        distanceFromLastAlert = results[0];
+                    }
+                    
+                    // Alert every 400m while above speed limit
+                    if (!hasAlertedSpeedLimit || distanceFromLastAlert >= 400f) {
+                        String message = "Please slow down.\nCurrent Speed: " + String.format("%.1f", speedKmh) + " km/h";
+                        Log.d("SpeedAlert", "Speed exceeds limit! Sending notification. Distance from last alert: " + distanceFromLastAlert + "m");
+                        AlertsNotification.sendSpeedLimitAlert(
+                                this,
+                                "Speed Alert! (" + speedLimit + ")",
+                                message
+                        );
+                        hasAlertedSpeedLimit = true;
+                        lastSpeedAlertLocation = new Location(currentLocation);
+                    } else {
+                        Log.d("SpeedAlert", "Already alerted recently. Distance from last alert: " + distanceFromLastAlert + "m");
+                    }
                 }
             } else {
                 if (hasAlertedSpeedLimit) {
                     Log.d("SpeedAlert", "Speed dropped below or equals limit. Resetting alert flag.");
                 }
                 hasAlertedSpeedLimit = false;
+                lastSpeedAlertLocation = null; // Reset location tracking
                 Log.d("SpeedAlert", "Speed is within limit. No alert. (speedKmh=" + speedKmh + ", limit=" + speedLimit + ")");
             }
         } else {
