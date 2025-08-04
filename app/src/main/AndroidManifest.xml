@@ -83,6 +83,18 @@
         </activity>
 
         <activity
+            android:name=".AddCardActivity"
+            android:label="Add Payment Method"
+            android:parentActivityName=".ProfileActivity">
+        </activity>
+
+        <activity
+            android:name=".PaymentHistoryActivity"
+            android:label="Payment History"
+            android:parentActivityName=".PaymentActivity">
+        </activity>
+
+        <activity
             android:name=".AlertSettingsActivity"
             android:label="Alert Settings"
             android:parentActivityName=".PersonalTools">

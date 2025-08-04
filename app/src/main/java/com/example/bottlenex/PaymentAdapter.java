@@ -12,13 +12,14 @@ import java.util.Locale;
 
 /**
  * Adapter for displaying payment records in a RecyclerView
+ * Works with PaymentHistoryActivity.PaymentRecord
  */
 public class PaymentAdapter extends RecyclerView.Adapter<PaymentAdapter.PaymentViewHolder> {
 
-    private List<PaymentActivity.PaymentRecord> paymentList;
+    private List<PaymentHistoryActivity.PaymentRecord> paymentList;
     private SimpleDateFormat dateFormat;
 
-    public PaymentAdapter(List<PaymentActivity.PaymentRecord> paymentList) {
+    public PaymentAdapter(List<PaymentHistoryActivity.PaymentRecord> paymentList) {
         this.paymentList = paymentList;
         this.dateFormat = new SimpleDateFormat("MMM dd, yyyy 'at' hh:mm a", Locale.getDefault());
     }
@@ -33,7 +34,7 @@ public class PaymentAdapter extends RecyclerView.Adapter<PaymentAdapter.PaymentV
 
     @Override
     public void onBindViewHolder(@NonNull PaymentViewHolder holder, int position) {
-        PaymentActivity.PaymentRecord payment = paymentList.get(position);
+        PaymentHistoryActivity.PaymentRecord payment = paymentList.get(position);
         
         // Set payment details
         holder.tvPlanTitle.setText(payment.getPlanTitle());
@@ -51,10 +52,13 @@ public class PaymentAdapter extends RecyclerView.Adapter<PaymentAdapter.PaymentV
             holder.tvPaymentDate.setText("Date not available");
         }
         
-        // Set status color
-        if ("completed".equalsIgnoreCase(payment.getStatus())) {
-            holder.tvStatus.setTextColor(holder.itemView.getContext().getResources().getColor(android.R.color.holo_green_dark));
-        } else if ("pending".equalsIgnoreCase(payment.getStatus())) {
+        setStatusColor(holder, payment.getStatus());
+    }
+
+    private void setStatusColor(PaymentViewHolder holder, String status) {
+        if ("completed".equalsIgnoreCase(status)) {
+            holder.tvStatus.setTextColor(holder.itemView.getContext().getResources().getColor(android.R.color.white));
+        } else if ("pending".equalsIgnoreCase(status)) {
             holder.tvStatus.setTextColor(holder.itemView.getContext().getResources().getColor(android.R.color.holo_orange_dark));
         } else {
             holder.tvStatus.setTextColor(holder.itemView.getContext().getResources().getColor(android.R.color.holo_red_dark));

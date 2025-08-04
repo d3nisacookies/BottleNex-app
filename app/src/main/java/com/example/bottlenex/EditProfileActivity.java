@@ -2,8 +2,10 @@ package com.example.bottlenex;
 
 import android.app.DatePickerDialog;
 import android.os.Bundle;
+import android.view.MenuItem;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.ImageButton;
 import android.widget.TextView;
 import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
@@ -26,6 +28,8 @@ public class EditProfileActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_edit_profile);
 
+
+
         // Initialize Firebase
         db = FirebaseFirestore.getInstance();
         mAuth = FirebaseAuth.getInstance();
@@ -37,6 +41,7 @@ public class EditProfileActivity extends AppCompatActivity {
         EditText etPhone = findViewById(R.id.etPhone);
         EditText etPostcode = findViewById(R.id.etPostcode);
         Button btnSave = findViewById(R.id.btnSave);
+        ImageButton btnBack = findViewById(R.id.btnBack);
 
         // Set up Date Picker for Date of Birth field
         etDob.setOnClickListener(v -> showDatePickerDialog(etDob));
@@ -54,7 +59,14 @@ public class EditProfileActivity extends AppCompatActivity {
             // Save the updated profile to Firebase
             saveUserData(name, dob, phone, postcode);
         });
+
+        // Set up custom back button
+        btnBack.setOnClickListener(v -> {
+            finish();
+        });
     }
+
+
 
     private void loadUserData(TextView tvEmail, EditText etName, EditText etDob, EditText etPhone, EditText etPostcode) {
         FirebaseUser currentUser = mAuth.getCurrentUser();
