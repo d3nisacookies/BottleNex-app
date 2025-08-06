@@ -48,6 +48,7 @@ import android.graphics.drawable.Drawable;
 import java.util.HashSet;
 import java.util.Set;
 import com.example.bottlenex.OSMSpeedCameraFetcher;
+import com.example.bottlenex.RouteHistory;
 import android.view.View;
 
 
@@ -82,6 +83,16 @@ public class MainActivity extends AppCompatActivity implements
     private Set<String> alertedSpeedCameraIds = new HashSet<>();
     private boolean isNavigating = false;
     private Location lastSpeedAlertLocation = null; // Track location for 100m alerts
+    
+    // Route History tracking stuff
+    private DatabaseHelper databaseHelper;
+    private long journeyStartTime;
+    private Location journeyStartLocation;
+    private GeoPoint journeyDestination;
+    private String journeyStartAddress;
+    private String journeyEndAddress;
+    private double journeyDistance;
+    private static final int REQUEST_CODE_ROUTE_HISTORY = 101;
 
     private void saveStarred(String name, double lat, double lon) {
         SharedPreferences prefs = getSharedPreferences("starred_places", MODE_PRIVATE);
@@ -146,6 +157,17 @@ public class MainActivity extends AppCompatActivity implements
         loadStarredPlaces();
         mapManager.setOnMapClickListener(this);
         mapManager.setOnLocationUpdateListener(this);
+
+        // ini dbhelper for rh
+        databaseHelper = new DatabaseHelper(this);
+        
+        // test db conn
+        try {
+            databaseHelper.getReadableDatabase();
+            Log.d("RouteHistory", "Database initialized successfully");
+        } catch (Exception e) {
+            Log.e("RouteHistory", "Database initialization failed: " + e.getMessage());
+        }
 
         setupUI();
 
@@ -584,6 +606,8 @@ public class MainActivity extends AppCompatActivity implements
                     binding.btnJourney.setVisibility(View.VISIBLE);
                     binding.btnJourney.setText("Start Navigation");
                     binding.tvJourneyState.setVisibility(View.GONE);
+
+                    journeyDistance = distance;
                 });
             }
             @Override
@@ -596,10 +620,29 @@ public class MainActivity extends AppCompatActivity implements
     }
 
     private void startJourney() {
+        if (selectedLocation == null) {
+            Toast.makeText(this, "Please select a destination first", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        
         isNavigating = true;
         binding.btnJourney.setText("Finish Navigation");
         binding.tvJourneyState.setText("You are currently in a journey");
         binding.tvJourneyState.setVisibility(View.VISIBLE);
+        
+        // Start tracking journey for route history
+        journeyStartTime = System.currentTimeMillis();
+        journeyStartLocation = mapManager.getLastKnownLocation();
+        journeyStartAddress = getAddressFromLocation(journeyStartLocation);
+        
+        // Store the selected destination
+        journeyDestination = selectedLocation;
+        journeyDistance = 0.0;
+        
+        Log.d("RouteHistory", "Journey started from: " + journeyStartAddress);
+        Log.d("RouteHistory", "Journey destination: " + (journeyDestination != null ? 
+            journeyDestination.getLatitude() + ", " + journeyDestination.getLongitude() : "null"));
+        
         // Optionally, disable map interaction or other UI changes
     }
 
@@ -608,7 +651,9 @@ public class MainActivity extends AppCompatActivity implements
         binding.btnJourney.setText("Start Navigation");
         binding.tvJourneyState.setText("");
         binding.tvJourneyState.setVisibility(View.GONE);
-        // Optionally, re-enable map interaction or reset UI
+        
+        // Save journey to route history
+        saveJourneyToHistory();
     }
 
     @Override
@@ -631,6 +676,96 @@ public class MainActivity extends AppCompatActivity implements
         super.onDestroy();
         mapManager.stopLocationUpdates();
         }
+
+    private String getAddressFromLocation(Location location) {
+        if (location == null) return "Unknown Location";
+        return getAddressFromLocation(location.getLatitude(), location.getLongitude());
+    }
+
+    private String getAddressFromLocation(double latitude, double longitude) {
+        Geocoder geocoder = new Geocoder(this, Locale.getDefault());
+        try {
+            List<Address> addresses = geocoder.getFromLocation(latitude, longitude, 1);
+            if (addresses != null && !addresses.isEmpty()) {
+                Address address = addresses.get(0);
+                String addressLine = address.getAddressLine(0);
+                return addressLine != null ? addressLine : "Unknown Location";
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return "Unknown Location";
+    }
+
+    private void saveJourneyToHistory() {
+        if (journeyStartLocation == null) {
+            Log.w("RouteHistory", "Cannot save journey: no start location");
+            return;
+        }
+
+        if (journeyDestination == null) {
+            Log.w("RouteHistory", "Cannot save journey: no destination");
+            return;
+        }
+
+        // Calculate journey duration
+        long journeyEndTime = System.currentTimeMillis();
+        double durationSeconds = (journeyEndTime - journeyStartTime) / 1000.0;
+
+        journeyEndAddress = getAddressFromLocation(journeyDestination.getLatitude(), journeyDestination.getLongitude());
+
+        if (journeyDistance == 0.0) {
+            float[] results = new float[1];
+            Location.distanceBetween(
+                journeyStartLocation.getLatitude(), journeyStartLocation.getLongitude(),
+                journeyDestination.getLatitude(), journeyDestination.getLongitude(),
+                results
+            );
+            journeyDistance = results[0];
+        }
+
+        // Format times
+        java.text.SimpleDateFormat timeFormat = new java.text.SimpleDateFormat("HH:mm", Locale.getDefault());
+        java.text.SimpleDateFormat dateFormat = new java.text.SimpleDateFormat("dd/MM/yyyy", Locale.getDefault());
+        
+        String startTime = timeFormat.format(new java.util.Date(journeyStartTime));
+        String endTime = timeFormat.format(new java.util.Date(journeyEndTime));
+        String date = dateFormat.format(new java.util.Date(journeyStartTime));
+
+        // Create route history object
+        RouteHistory routeHistory = new RouteHistory(
+            journeyStartLocation.getLatitude(),
+            journeyStartLocation.getLongitude(),
+            journeyDestination.getLatitude(),
+            journeyDestination.getLongitude(),
+            journeyStartAddress,
+            journeyEndAddress,
+            journeyDistance,
+            durationSeconds,
+            startTime,
+            endTime,
+            date
+        );
+
+        // save to db
+        long result = databaseHelper.insertRouteHistory(routeHistory);
+        if (result != -1) {
+            Log.d("RouteHistory", "Journey saved successfully with ID: " + result);
+            Log.d("RouteHistory", "Route details: " + routeHistory.getFormattedRoute());
+            Log.d("RouteHistory", "Distance: " + routeHistory.getFormattedDistance());
+            Log.d("RouteHistory", "Duration: " + routeHistory.getFormattedDuration());
+            Toast.makeText(this, "Journey saved to history", Toast.LENGTH_SHORT).show();
+        } else {
+            Log.e("RouteHistory", "Failed to save journey");
+            Toast.makeText(this, "Failed to save journey", Toast.LENGTH_SHORT).show();
+        }
+
+        journeyStartLocation = null;
+        journeyDestination = null;
+        journeyStartAddress = null;
+        journeyEndAddress = null;
+        journeyDistance = 0.0;
+    }
 
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {

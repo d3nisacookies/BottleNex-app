@@ -216,8 +216,10 @@
                 android:layout_height="match_parent"
                 android:layout_weight="1"
                 android:src="@drawable/dehaze"
-                android:contentDescription="car"
+                android:contentDescription="Personal Tools"
                 android:background="@android:color/transparent" />
+
+
 
         </LinearLayout>
     </LinearLayout>
