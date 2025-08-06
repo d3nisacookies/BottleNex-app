@@ -1,5 +1,7 @@
 package com.example.bottlenex;
 
+//To commit
+
 import android.Manifest;
 import android.content.Intent;
 import android.content.SharedPreferences;
@@ -1104,7 +1106,6 @@ public class MainActivity extends AppCompatActivity implements
         }
         
         Toast.makeText(this, "Route cancelled", Toast.LENGTH_SHORT).show();
->>>>>>> Stashed changes
     }
 
     @Override
