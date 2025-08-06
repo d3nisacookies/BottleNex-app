@@ -26,6 +26,7 @@ import org.osmdroid.views.overlay.mylocation.GpsMyLocationProvider;
 import org.osmdroid.views.overlay.mylocation.MyLocationNewOverlay;
 import org.osmdroid.views.overlay.Polyline;
 
+import com.example.bottlenex.routing.RoutePlanner;
 import com.google.android.gms.location.FusedLocationProviderClient;
 import com.google.android.gms.location.LocationCallback;
 import com.google.android.gms.location.LocationRequest;
@@ -44,7 +45,7 @@ import javax.inject.Singleton;
 public class MapManager {
     
     private static final String TAG = "MapManager";
-    private static final int DEFAULT_ZOOM = 15;
+    private static final int DEFAULT_ZOOM = 18; // Increased from 17 to 18 for even better default zoom
     private static final double DEFAULT_LAT = 1.3521; // SINGAPORE
     private static final double DEFAULT_LON = 103.8198;
 
@@ -58,13 +59,21 @@ public class MapManager {
     private Location lastKnownLocation;
     private FusedLocationProviderClient fusedLocationClient;
     private LocationCallback locationCallback;
-
-
-
-
+    private NavigationOverlay navigationOverlay;
     private final List<Marker> markers = new ArrayList<>();
     private OnMapClickListener onMapClickListener;
     private OnLocationUpdateListener onLocationUpdateListener;
+    
+    // Auto-follow functionality
+    private boolean isAutoFollowEnabled = false; // Only enabled during navigation
+    private boolean isNavigating = false;
+    private boolean hasInitialLocation = false; // Track if we've centered on initial location
+    private long lastManualInteraction = 0;
+    private static final long AUTO_FOLLOW_DELAY = 7000; // 7 seconds - longer pause for better user experience
+    
+    // Movement detection for auto-follow
+    private Location previousLocation = null;
+    private static final float MOVEMENT_THRESHOLD = 5.0f; // 5 meters - minimum distance to consider as movement
     
     @Inject
     public MapManager(Context context) {
@@ -113,6 +122,10 @@ public class MapManager {
             
             // Setup map click listener
             setupMapClickListener();
+            
+            // Setup navigation overlay
+            navigationOverlay = new NavigationOverlay(context, mapView);
+            mapView.getOverlays().add(navigationOverlay);
             
         } catch (Exception e) {
             Log.e(TAG, "Error setting up map", e);
@@ -192,6 +205,41 @@ public class MapManager {
 
                     if (lat != 0.0 && !(lat == 37.4220936 && lon == -122.083922)) {
                         lastKnownLocation = newLocation;
+                        
+                        // Update navigation overlay with current location
+                        if (navigationOverlay != null) {
+                            navigationOverlay.updateCurrentLocation(newLocation);
+                        }
+                        
+                        // Movement-based auto-follow logic
+                        if (isAutoFollowEnabled && isNavigating) {
+                            // Auto-follow during active navigation
+                            long currentTime = System.currentTimeMillis();
+                            if (currentTime - lastManualInteraction > AUTO_FOLLOW_DELAY) {
+                                centerOnLocation(newLocation);
+                            }
+                        } else if (!hasInitialLocation) {
+                            // Center on location once at launch
+                            centerOnLocation(newLocation);
+                            hasInitialLocation = true;
+                        } else if (!isNavigating) {
+                            // Auto-follow when user is moving (outside navigation mode)
+                            if (previousLocation != null) {
+                                float distance = newLocation.distanceTo(previousLocation);
+                                if (distance > MOVEMENT_THRESHOLD) {
+                                    // User is moving, enable auto-follow
+                                    long currentTime = System.currentTimeMillis();
+                                    if (currentTime - lastManualInteraction > AUTO_FOLLOW_DELAY) {
+                                        centerOnLocation(newLocation);
+                                        Log.d(TAG, "Auto-following user movement: " + distance + "m");
+                                    }
+                                }
+                            }
+                        }
+                        
+                        // Update previous location for next comparison
+                        previousLocation = newLocation;
+                        
                         if (onLocationUpdateListener != null) {
                             onLocationUpdateListener.onLocationUpdate(newLocation);
                         }
@@ -337,6 +385,99 @@ public class MapManager {
 
         mapView.getOverlays().add(routeLine);
         mapView.invalidate();
+    }
+
+    public void clearRoute() {
+        try {
+            if (routeLine != null && mapView != null) {
+                mapView.getOverlays().remove(routeLine);
+                routeLine = null;
+                mapView.invalidate();
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "Error clearing route", e);
+        }
+    }
+
+    public void startNavigation(List<RoutePlanner.NavigationStep> navigationSteps) {
+        try {
+            if (navigationOverlay != null) {
+                navigationOverlay.setNavigationSteps(navigationSteps);
+                mapView.invalidate();
+            }
+            // Enable auto-follow during navigation
+            isNavigating = true;
+            enableAutoFollow();
+        } catch (Exception e) {
+            Log.e(TAG, "Error starting navigation", e);
+        }
+    }
+
+    public void stopNavigation() {
+        try {
+            if (navigationOverlay != null) {
+                navigationOverlay.setNavigationSteps(null);
+                mapView.invalidate();
+            }
+            // Disable auto-follow after navigation (user can explore freely)
+            isNavigating = false;
+            disableAutoFollow();
+        } catch (Exception e) {
+            Log.e(TAG, "Error stopping navigation", e);
+        }
+    }
+
+    public boolean isNearDestination() {
+        if (navigationOverlay != null) {
+            return navigationOverlay.isNearDestination();
+        }
+        return false;
+    }
+    
+    // Auto-follow methods
+    public void enableAutoFollow() {
+        isAutoFollowEnabled = true;
+        Log.d(TAG, "Auto-follow enabled");
+    }
+    
+    public void disableAutoFollow() {
+        isAutoFollowEnabled = false;
+        Log.d(TAG, "Auto-follow disabled");
+    }
+    
+    public boolean isAutoFollowEnabled() {
+        return isAutoFollowEnabled;
+    }
+    
+    public void resetAutoFollowState() {
+        isAutoFollowEnabled = false;
+        hasInitialLocation = false;
+        lastManualInteraction = 0;
+        previousLocation = null; // Reset movement tracking
+        Log.d(TAG, "Auto-follow state reset to initial state");
+    }
+    
+    public void onManualInteraction() {
+        lastManualInteraction = System.currentTimeMillis();
+        previousLocation = null; // Reset movement tracking to prevent immediate auto-follow
+        Log.d(TAG, "Manual interaction detected, auto-follow paused and movement tracking reset");
+    }
+    
+    private void centerOnLocation(Location location) {
+        if (mapController != null && location != null) {
+            GeoPoint point = new GeoPoint(location.getLatitude(), location.getLongitude());
+            mapController.animateTo(point);
+        }
+    }
+    
+    public void centerOnDestination(GeoPoint destination) {
+        if (mapController != null && destination != null) {
+            // Temporarily pause auto-follow to show destination
+            onManualInteraction(); // This pauses auto-follow for 7 seconds
+            mapController.animateTo(destination);
+            
+            // Auto-follow will resume automatically after 7 seconds
+        }
     }
 
 }

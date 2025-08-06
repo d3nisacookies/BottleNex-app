@@ -50,6 +50,10 @@ import java.util.Set;
 import com.example.bottlenex.OSMSpeedCameraFetcher;
 import com.example.bottlenex.RouteHistory;
 import android.view.View;
+import android.view.LayoutInflater;
+import android.widget.TextView;
+import android.widget.Button;
+import android.widget.ImageView;
 
 
 
@@ -83,6 +87,7 @@ public class MainActivity extends AppCompatActivity implements
     private Set<String> alertedSpeedCameraIds = new HashSet<>();
     private boolean isNavigating = false;
     private Location lastSpeedAlertLocation = null; // Track location for 100m alerts
+    private RoutePlanner.RouteData currentRouteData = null;
     
     // Route History tracking stuff
     private DatabaseHelper databaseHelper;
@@ -93,6 +98,14 @@ public class MainActivity extends AppCompatActivity implements
     private String journeyEndAddress;
     private double journeyDistance;
     private static final int REQUEST_CODE_ROUTE_HISTORY = 101;
+    
+    // Search suggestions and autocomplete
+    private List<Address> searchSuggestions = new ArrayList<>();
+    private boolean isShowingSuggestions = false;
+    private android.os.Handler searchHandler = new android.os.Handler();
+    private Runnable searchRunnable;
+    private android.widget.ListView suggestionListView;
+    private android.widget.ArrayAdapter<String> suggestionAdapter;
 
     private void saveStarred(String name, double lat, double lon) {
         SharedPreferences prefs = getSharedPreferences("starred_places", MODE_PRIVATE);
@@ -154,6 +167,7 @@ public class MainActivity extends AppCompatActivity implements
         initializeFirebaseAuth();
 
         mapManager.setupMap(binding.mapView);
+        mapManager.resetAutoFollowState(); // Reset auto-follow to initial state
         loadStarredPlaces();
         mapManager.setOnMapClickListener(this);
         mapManager.setOnLocationUpdateListener(this);
@@ -196,11 +210,17 @@ public class MainActivity extends AppCompatActivity implements
         setSupportActionBar(binding.toolbar);
 
         // Map controls
-        binding.btnZoomIn.setOnClickListener(v -> mapManager.zoomIn());
-        binding.btnZoomOut.setOnClickListener(v -> mapManager.zoomOut());
+        binding.btnZoomIn.setOnClickListener(v -> {
+            mapManager.zoomIn();
+            mapManager.onManualInteraction(); // Pause auto-follow
+        });
+        binding.btnZoomOut.setOnClickListener(v -> {
+            mapManager.zoomOut();
+            mapManager.onManualInteraction(); // Pause auto-follow
+        });
         binding.btnMyLocation.setOnClickListener(v -> mapManager.centerOnMyLocation());
 
-        // SearchView setup
+        // SearchView setup with autocomplete
         SearchView searchView = binding.searchView;
         if (searchView != null) {
             searchView.setOnQueryTextListener(new SearchView.OnQueryTextListener() {
@@ -210,16 +230,48 @@ public class MainActivity extends AppCompatActivity implements
                         Toast.makeText(MainActivity.this, "Please enter a location to search", Toast.LENGTH_SHORT).show();
                         return false;
                     }
+                    // Hide suggestions when submitting
+                    hideSearchSuggestions();
                     performSearch(query.trim());
                     searchView.clearFocus();
                     return true;
                 }
                 @Override
                 public boolean onQueryTextChange(String newText) {
+                    if (newText == null || newText.trim().isEmpty()) {
+                        hideSearchSuggestions();
+                        return false;
+                    }
+                    
+                    // Cancel previous search
+                    if (searchRunnable != null) {
+                        searchHandler.removeCallbacks(searchRunnable);
+                    }
+                    
+                    // Debounce search suggestions
+                    searchRunnable = () -> {
+                        if (newText.trim().length() >= 2) {
+                            performSearchSuggestions(newText.trim());
+                        } else {
+                            hideSearchSuggestions();
+                        }
+                    };
+                    searchHandler.postDelayed(searchRunnable, 300); // 300ms delay
                     return false;
                 }
             });
+            
+            // Handle search view focus changes
+            searchView.setOnQueryTextFocusChangeListener((v, hasFocus) -> {
+                if (!hasFocus) {
+                    // Hide suggestions when search view loses focus
+                    hideSearchSuggestions();
+                }
+            });
         }
+        
+        // Setup suggestion dropdown
+        setupSuggestionDropdown();
 
         // Profile button - navigate to ProfileActivity
         binding.btnSearchRight.setOnClickListener(v -> {
@@ -298,6 +350,9 @@ public class MainActivity extends AppCompatActivity implements
                 finishJourney();
             }
         });
+
+        // Cancel route button
+        binding.btnCancelRoute.setOnClickListener(v -> cancelRoute());
     }
 
     private void saveFavourite(String query) {
@@ -312,38 +367,178 @@ public class MainActivity extends AppCompatActivity implements
     private void performSearch(String query) {
         Geocoder geocoder = new Geocoder(this, Locale.getDefault());
         try {
-            List<Address> addresses = geocoder.getFromLocationName(query, 1);
+            List<Address> addresses = geocoder.getFromLocationName(query, 5); // Get up to 5 results
             if (addresses == null || addresses.isEmpty()) {
                 Toast.makeText(this, "Location not found", Toast.LENGTH_SHORT).show();
                 return;
             }
 
-            Address address = addresses.get(0);
-            GeoPoint point = new GeoPoint(address.getLatitude(), address.getLongitude());
-
-            binding.mapView.getController().setZoom(15.0);
-            binding.mapView.getController().setCenter(point);
-
-            binding.mapView.getOverlays().clear();
-
-            loadStarredPlaces();
-
-            Marker marker = new Marker(binding.mapView);
-            marker.setPosition(point);
-            marker.setTitle(query);
-            binding.mapView.getOverlays().add(marker);
-
-            binding.mapView.invalidate();
-
-            // Update selected location and UI
-            selectedLocation = point;
-            binding.locationInfo.setText(String.format("Found: %s\nLat: %.6f, Lon: %.6f",
-                    query, point.getLatitude(), point.getLongitude()));
-            binding.btnNavigate.setEnabled(true);
+            if (addresses.size() == 1) {
+                // Single result - proceed directly
+                selectLocationFromAddress(addresses.get(0), query);
+            } else {
+                // Multiple results - show selection dialog
+                showMultipleResultsDialog(addresses, query);
+            }
         } catch (IOException e) {
             e.printStackTrace();
             Toast.makeText(this, "Geocoding failed, please try again", Toast.LENGTH_SHORT).show();
         }
+    }
+    
+    private void performSearchSuggestions(String query) {
+        Log.d("SearchSuggestions", "Performing search suggestions for: " + query);
+        
+        if (query == null || query.trim().isEmpty()) {
+            hideSearchSuggestions();
+            return;
+        }
+        
+        new Thread(() -> {
+            try {
+                Geocoder geocoder = new Geocoder(MainActivity.this, Locale.getDefault());
+                
+                // Check if Geocoder is available
+                if (!Geocoder.isPresent()) {
+                    Log.e("SearchSuggestions", "Geocoder is not available on this device");
+                    runOnUiThread(() -> hideSearchSuggestions());
+                    return;
+                }
+                
+                List<Address> addresses = geocoder.getFromLocationName(query, 5);
+                
+                Log.d("SearchSuggestions", "Query: " + query + ", Found addresses: " + (addresses != null ? addresses.size() : 0));
+                
+                runOnUiThread(() -> {
+                    if (addresses != null && !addresses.isEmpty()) {
+                        searchSuggestions = addresses;
+                        showSearchSuggestions(addresses);
+                    } else {
+                        Log.d("SearchSuggestions", "No addresses found for query: " + query);
+                        hideSearchSuggestions();
+                    }
+                });
+            } catch (Exception e) {
+                Log.e("SearchSuggestions", "Error getting suggestions: " + e.getMessage());
+                e.printStackTrace();
+                runOnUiThread(() -> hideSearchSuggestions());
+            }
+        }).start();
+    }
+    
+    private void setupSuggestionDropdown() {
+        // Get the ListView from the layout
+        suggestionListView = binding.suggestionListView;
+        
+        // Create a simple drawable for the divider
+        android.graphics.drawable.ColorDrawable dividerDrawable = new android.graphics.drawable.ColorDrawable(android.graphics.Color.LTGRAY);
+        suggestionListView.setDivider(dividerDrawable);
+        suggestionListView.setDividerHeight(1);
+        
+        // Create adapter
+        suggestionAdapter = new android.widget.ArrayAdapter<>(this, android.R.layout.simple_list_item_1);
+        suggestionListView.setAdapter(suggestionAdapter);
+        
+        // Handle item clicks
+        suggestionListView.setOnItemClickListener((parent, view, position, id) -> {
+            if (position < searchSuggestions.size()) {
+                Address selectedAddress = searchSuggestions.get(position);
+                String query = getReadableAddress(selectedAddress);
+                binding.searchView.setQuery(query, false);
+                hideSearchSuggestions();
+                performSearch(query);
+            }
+        });
+    }
+    
+    private void showSearchSuggestions(List<Address> addresses) {
+        Log.d("SearchSuggestions", "Showing " + addresses.size() + " suggestions");
+        if (suggestionListView == null || suggestionAdapter == null) {
+            Log.e("SearchSuggestions", "Suggestion views not initialized");
+            return;
+        }
+        
+        searchSuggestions = addresses;
+        suggestionAdapter.clear();
+        
+        for (Address address : addresses) {
+            String suggestion = getReadableAddress(address);
+            suggestionAdapter.add(suggestion);
+            Log.d("SearchSuggestions", "Added suggestion: " + suggestion);
+            
+            // Debug: Log address details
+            Log.d("SearchSuggestions", "Address details - Locality: " + address.getLocality() + 
+                  ", Country: " + address.getCountryName() + 
+                  ", AddressLine0: " + address.getAddressLine(0));
+        }
+        
+        suggestionListView.setVisibility(View.VISIBLE);
+        isShowingSuggestions = true;
+        Log.d("SearchSuggestions", "Suggestion dropdown should now be visible");
+    }
+    
+    private void hideSearchSuggestions() {
+        if (suggestionListView != null) {
+            suggestionListView.setVisibility(View.GONE);
+        }
+        if (suggestionAdapter != null) {
+            suggestionAdapter.clear();
+        }
+        isShowingSuggestions = false;
+        searchSuggestions.clear();
+    }
+    
+    private void showMultipleResultsDialog(List<Address> addresses, String originalQuery) {
+        String[] options = new String[addresses.size()];
+        for (int i = 0; i < addresses.size(); i++) {
+            Address address = addresses.get(i);
+            String readableAddress = getReadableAddress(address);
+            // Add country info if available
+            if (address.getCountryName() != null) {
+                options[i] = readableAddress + " (" + address.getCountryName() + ")";
+            } else {
+                options[i] = readableAddress;
+            }
+        }
+        
+        android.app.AlertDialog.Builder builder = new android.app.AlertDialog.Builder(this);
+        builder.setTitle("Multiple locations found for \"" + originalQuery + "\"")
+               .setItems(options, (dialog, which) -> {
+                   selectLocationFromAddress(addresses.get(which), getReadableAddress(addresses.get(which)));
+               })
+               .setNegativeButton("Cancel", null)
+               .show();
+    }
+    
+    private void selectLocationFromAddress(Address address, String displayName) {
+        GeoPoint point = new GeoPoint(address.getLatitude(), address.getLongitude());
+
+        // Center on destination and temporarily disable auto-follow
+        mapManager.centerOnDestination(point);
+
+        // Clear only markers, not the location overlay
+        mapManager.clearMarkers();
+        loadStarredPlaces();
+
+        // Use MapManager's addMarker method to ensure it's tracked
+        mapManager.addMarker(point, displayName);
+
+        binding.mapView.invalidate();
+
+        // Update selected location and UI
+        selectedLocation = point;
+        binding.locationInfo.setText(String.format("Found: %s\nLat: %.6f, Lon: %.6f",
+                displayName, point.getLatitude(), point.getLongitude()));
+        
+        // Enable navigate button when a location is found
+        binding.btnNavigate.setEnabled(true);
+        
+        // Only update other UI elements if we're not already in navigation mode
+        if (!isNavigating) {
+            binding.btnCancelRoute.setVisibility(View.GONE);
+            binding.btnJourney.setVisibility(View.GONE);
+        }
+        // If we're navigating, keep the current navigation state intact
     }
 
     private boolean checkPermissions() {
@@ -398,16 +593,38 @@ public class MainActivity extends AppCompatActivity implements
         mapManager.clearMarkers();
         mapManager.addMarker(point, "Selected Location");
 
-        String locationText = String.format("Lat: %.6f, Lon: %.6f",
-                point.getLatitude(), point.getLongitude());
-        binding.locationInfo.setText(locationText);
+        // Get the address of the selected location using reverse geocoding
+        getLocationAddress(point);
 
+        // Enable navigate button when a location is selected
         binding.btnNavigate.setEnabled(true);
+        
+        // Only update other UI elements if we're not already in navigation mode
+        if (!isNavigating) {
+            binding.btnCancelRoute.setVisibility(View.GONE);
+            binding.btnJourney.setVisibility(View.GONE);
+        }
+        // If we're navigating, keep the current navigation state intact
     }
     @Override
     public void onLocationUpdate(Location location) {
         Log.d("SpeedAlert", "onLocationUpdate called. Location: " + location);
         Log.d("SpeedAlert", "location.hasSpeed(): " + location.hasSpeed());
+        
+        // Check if we've reached the destination during navigation
+        if (isNavigating && mapManager.isNearDestination()) {
+            runOnUiThread(() -> {
+                Toast.makeText(this, "You have reached your destination!", Toast.LENGTH_LONG).show();
+                // Automatically finish the journey and clear everything
+                finishJourney();
+            });
+        }
+        
+        // Update navigation info during active navigation
+        if (isNavigating && currentRouteData != null) {
+            updateNavigationInfo();
+        }
+        
         if (!location.hasSpeed()) {
             Log.d("SpeedAlert", "No speed data in this location update. Skipping speed alert logic.");
             return;
@@ -580,11 +797,6 @@ public class MainActivity extends AppCompatActivity implements
         }
     }
     private void onNavigateClicked() {
-        if (selectedLocation == null) {
-            Toast.makeText(this, "Please select a location on the map first", Toast.LENGTH_SHORT).show();
-            return;
-        }
-
         Location currentLocation = mapManager.getLastKnownLocation();
         if (currentLocation == null) {
             Toast.makeText(this, "Current location not available", Toast.LENGTH_SHORT).show();
@@ -598,16 +810,14 @@ public class MainActivity extends AppCompatActivity implements
 
         RoutePlanner.getRoute(start, end, apiKey, new RoutePlanner.RouteCallback() {
             @Override
-            public void onRouteReady(ArrayList<GeoPoint> routePoints, double duration, double distance) {
+            public void onRouteReady(RoutePlanner.RouteData routeData) {
                 runOnUiThread(() -> {
-                    mapManager.drawRoute(routePoints);
-                    String info = String.format("Route: %.2f km, %.2f min", distance / 1000.0, duration / 60.0);
-                    binding.locationInfo.setText(info);
-                    binding.btnJourney.setVisibility(View.VISIBLE);
-                    binding.btnJourney.setText("Start Navigation");
-                    binding.tvJourneyState.setVisibility(View.GONE);
-
-                    journeyDistance = distance;
+                    currentRouteData = routeData;
+                    mapManager.drawRoute(routeData.routePoints);
+                    showEnhancedRouteSummary(routeData);
+                    
+                    // Store journey distance for route history
+                    journeyDistance = routeData.distance;
                 });
             }
             @Override
@@ -619,41 +829,282 @@ public class MainActivity extends AppCompatActivity implements
         });
     }
 
+    private void showEnhancedRouteSummary(RoutePlanner.RouteData routeData) {
+        // Calculate route information
+        String timeText = formatTimeForDisplay(routeData.duration);
+        
+        // Calculate arrival time
+        java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat("HH:mm", java.util.Locale.getDefault());
+        java.util.Calendar cal = java.util.Calendar.getInstance();
+        cal.add(java.util.Calendar.MINUTE, (int) Math.ceil(routeData.duration / 60.0));
+        String arrivalTime = sdf.format(cal.getTime());
+        
+        // Display route summary in the bottom panel
+        String routeSummary = String.format("Route: %.1f km • %s • Arrive @ %s", 
+            routeData.distance / 1000.0, timeText, arrivalTime);
+        binding.locationInfo.setText(routeSummary);
+        
+        // Show the "Start Navigation" button
+        binding.btnJourney.setVisibility(View.VISIBLE);
+        binding.btnJourney.setText("Start Navigation");
+        
+        // Update UI state
+        binding.btnCancelRoute.setVisibility(View.VISIBLE);
+        binding.btnNavigate.setVisibility(View.GONE);
+    }
+
+
+
+
+
     private void startJourney() {
-        if (selectedLocation == null) {
-            Toast.makeText(this, "Please select a destination first", Toast.LENGTH_SHORT).show();
-            return;
+        if (currentRouteData != null && currentRouteData.navigationSteps != null) {
+            isNavigating = true;
+            binding.btnJourney.setText("Finish Navigation");
+            binding.tvJourneyState.setVisibility(View.GONE); // Hide the redundant message
+            
+            // Start tracking journey for route history
+            journeyStartTime = System.currentTimeMillis();
+            journeyStartLocation = mapManager.getLastKnownLocation();
+            journeyStartAddress = getAddressFromLocation(journeyStartLocation);
+            
+            // Store the selected destination
+            journeyDestination = selectedLocation;
+            
+            Log.d("RouteHistory", "Journey started from: " + journeyStartAddress);
+            Log.d("RouteHistory", "Journey destination: " + (journeyDestination != null ? 
+                journeyDestination.getLatitude() + ", " + journeyDestination.getLongitude() : "null"));
+            
+            // Start turn-by-turn navigation
+            mapManager.startNavigation(currentRouteData.navigationSteps);
+            
+            // Show remaining route info during navigation
+            updateNavigationInfo();
         }
-        
-        isNavigating = true;
-        binding.btnJourney.setText("Finish Navigation");
-        binding.tvJourneyState.setText("You are currently in a journey");
-        binding.tvJourneyState.setVisibility(View.VISIBLE);
-        
-        // Start tracking journey for route history
-        journeyStartTime = System.currentTimeMillis();
-        journeyStartLocation = mapManager.getLastKnownLocation();
-        journeyStartAddress = getAddressFromLocation(journeyStartLocation);
-        
-        // Store the selected destination
-        journeyDestination = selectedLocation;
-        journeyDistance = 0.0;
-        
-        Log.d("RouteHistory", "Journey started from: " + journeyStartAddress);
-        Log.d("RouteHistory", "Journey destination: " + (journeyDestination != null ? 
-            journeyDestination.getLatitude() + ", " + journeyDestination.getLongitude() : "null"));
-        
-        // Optionally, disable map interaction or other UI changes
     }
 
     private void finishJourney() {
         isNavigating = false;
         binding.btnJourney.setText("Start Navigation");
-        binding.tvJourneyState.setText("");
         binding.tvJourneyState.setVisibility(View.GONE);
         
         // Save journey to route history
         saveJourneyToHistory();
+        
+        // Stop turn-by-turn navigation
+        mapManager.stopNavigation();
+        
+        // Clear the route from the map
+        mapManager.clearRoute();
+        
+        // Clear the selected location marker
+        mapManager.clearMarkers();
+        
+        // Reset the selected location and route data
+        selectedLocation = null;
+        currentRouteData = null;
+        
+        // Reset UI to initial state
+        binding.locationInfo.setText("Tap on map to get location");
+        binding.btnNavigate.setEnabled(false);
+        binding.btnNavigate.setVisibility(View.VISIBLE);
+        binding.btnCancelRoute.setVisibility(View.GONE);
+        binding.btnJourney.setVisibility(View.GONE);
+        
+        // Clear search view
+        if (binding.searchView != null) {
+            binding.searchView.setQuery("", false);
+        }
+        
+        Toast.makeText(this, "Navigation finished", Toast.LENGTH_SHORT).show();
+    }
+
+    private void updateNavigationInfo() {
+        if (currentRouteData == null || !isNavigating) {
+            return;
+        }
+        
+        // Get current location
+        Location currentLocation = mapManager.getLastKnownLocation();
+        if (currentLocation == null) {
+            return;
+        }
+        
+        // Ensure we're on the UI thread
+        if (!isFinishing() && !isDestroyed()) {
+        
+        // Calculate remaining distance to destination
+        double remainingDistance = calculateRemainingDistance(currentLocation);
+        double remainingTime = calculateRemainingTime(remainingDistance);
+        
+        // Calculate estimated arrival time
+        java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat("HH:mm", java.util.Locale.getDefault());
+        java.util.Calendar cal = java.util.Calendar.getInstance();
+        cal.add(java.util.Calendar.MINUTE, (int) (remainingTime / 60.0));
+        String arrivalTime = sdf.format(cal.getTime());
+        
+        // Format time in a user-friendly way
+        String timeText = formatTimeForDisplay(remainingTime);
+        
+        // Format and display the info with arrival time
+        String info = String.format("Remaining: %.1f km, %s • Arrive @ %s", 
+            remainingDistance / 1000.0, timeText, arrivalTime);
+        binding.locationInfo.setText(info);
+        }
+    }
+    
+    private double calculateRemainingDistance(Location currentLocation) {
+        if (currentRouteData == null || currentRouteData.navigationSteps == null || 
+            currentRouteData.navigationSteps.isEmpty()) {
+            return 0;
+        }
+        
+        // Get the last step (destination)
+        RoutePlanner.NavigationStep destination = currentRouteData.navigationSteps.get(
+            currentRouteData.navigationSteps.size() - 1);
+        
+        float[] results = new float[1];
+        Location.distanceBetween(
+            currentLocation.getLatitude(), currentLocation.getLongitude(),
+            destination.location.getLatitude(), destination.location.getLongitude(),
+            results
+        );
+        
+        return results[0];
+    }
+    
+    private double calculateRemainingTime(double remainingDistance) {
+        if (currentRouteData == null) {
+            return 0;
+        }
+        
+        // Calculate time based on original route speed
+        double originalSpeed = currentRouteData.distance / currentRouteData.duration; // m/s
+        return remainingDistance / originalSpeed; // seconds
+    }
+    
+    private String formatTimeForDisplay(double timeInSeconds) {
+        // Always show in minutes, minimum 1 minute
+        int minutes = Math.max(1, (int) Math.ceil(timeInSeconds / 60.0));
+        return minutes + " min";
+    }
+    
+    private void preserveNavigationState() {
+        // If we're currently navigating, make sure navigation info is displayed
+        // Only preserve state if we have valid route data and are actually navigating
+        if (isNavigating && currentRouteData != null && selectedLocation != null) {
+            updateNavigationInfo();
+        } else {
+            // If state is inconsistent, reset to safe state
+            isNavigating = false;
+            currentRouteData = null;
+            selectedLocation = null;
+        }
+    }
+    
+    private void getLocationAddress(GeoPoint point) {
+        // Don't update location info if we're currently navigating
+        if (isNavigating) {
+            return;
+        }
+        
+        Geocoder geocoder = new Geocoder(this, Locale.getDefault());
+        try {
+            List<Address> addresses = geocoder.getFromLocation(point.getLatitude(), point.getLongitude(), 1);
+            if (addresses != null && !addresses.isEmpty()) {
+                Address address = addresses.get(0);
+                String locationName = getReadableAddress(address);
+                binding.locationInfo.setText(locationName + " • Tap Navigate to start route");
+            } else {
+                // Fallback if geocoding fails
+                binding.locationInfo.setText("Location Selected • Tap Navigate to start route");
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+            // Fallback if geocoding fails
+            binding.locationInfo.setText("Location Selected • Tap Navigate to start route");
+        }
+    }
+    
+    private String getReadableAddress(Address address) {
+        StringBuilder readableAddress = new StringBuilder();
+        
+        // First, check if we have a meaningful address line (for manually created addresses)
+        if (address.getAddressLine(0) != null && !address.getAddressLine(0).trim().isEmpty()) {
+            String addressLine = address.getAddressLine(0).trim();
+            // If the address line contains more than just a city name, use it
+            if (addressLine.contains(",") || addressLine.length() > 15) {
+                readableAddress.append(addressLine);
+            }
+        }
+        
+        // If we don't have a meaningful address line, try to build from components
+        if (readableAddress.length() == 0) {
+            if (address.getThoroughfare() != null) {
+                readableAddress.append(address.getThoroughfare()); // Street name
+            }
+            
+            if (address.getSubThoroughfare() != null) {
+                if (readableAddress.length() > 0) {
+                    readableAddress.append(", ");
+                }
+                readableAddress.append(address.getSubThoroughfare()); // Street number
+            }
+            
+            if (address.getSubLocality() != null) {
+                if (readableAddress.length() > 0) {
+                    readableAddress.append(", ");
+                }
+                readableAddress.append(address.getSubLocality()); // Neighborhood
+            }
+            
+            if (address.getLocality() != null) {
+                if (readableAddress.length() > 0) {
+                    readableAddress.append(", ");
+                }
+                readableAddress.append(address.getLocality()); // City
+            }
+        }
+        
+        // If still empty, use a generic message
+        if (readableAddress.length() == 0) {
+            readableAddress.append("Selected Location");
+        }
+        
+        return readableAddress.toString();
+    }
+    
+    private void cancelRoute() {
+        // Clear the route from the map
+        mapManager.clearRoute();
+        
+        // Stop navigation if active
+        if (isNavigating) {
+            mapManager.stopNavigation();
+        }
+        
+        // Clear the selected location marker
+        mapManager.clearMarkers();
+        
+        // Reset the selected location
+        selectedLocation = null;
+        currentRouteData = null;
+        
+        // Reset UI to initial state
+        binding.locationInfo.setText("Tap on map to get location");
+        binding.btnNavigate.setEnabled(false);
+        binding.btnNavigate.setVisibility(View.VISIBLE);
+        binding.btnCancelRoute.setVisibility(View.GONE);
+        binding.btnJourney.setVisibility(View.GONE);
+        binding.tvJourneyState.setVisibility(View.GONE);
+        
+        // Clear search view
+        if (binding.searchView != null) {
+            binding.searchView.setQuery("", false);
+        }
+        
+        Toast.makeText(this, "Route cancelled", Toast.LENGTH_SHORT).show();
+>>>>>>> Stashed changes
     }
 
     @Override
@@ -663,6 +1114,9 @@ public class MainActivity extends AppCompatActivity implements
         if (checkPermissions()) {
             mapManager.startLocationUpdates();
         }
+        
+        // Restore navigation state if we were navigating
+        preserveNavigationState();
     }
 
     @Override
@@ -675,7 +1129,12 @@ public class MainActivity extends AppCompatActivity implements
     protected void onDestroy() {
         super.onDestroy();
         mapManager.stopLocationUpdates();
+        
+        // Clean up search handler
+        if (searchHandler != null && searchRunnable != null) {
+            searchHandler.removeCallbacks(searchRunnable);
         }
+    }
 
     private String getAddressFromLocation(Location location) {
         if (location == null) return "Unknown Location";
@@ -782,7 +1241,8 @@ public class MainActivity extends AppCompatActivity implements
                 binding.mapView.getController().setZoom(15.0);
                 binding.mapView.getController().setCenter(point);
 
-                binding.mapView.getOverlays().clear();
+                // Clear only markers, not the location overlay
+                mapManager.clearMarkers();
                 loadStarredPlaces();
 
                 Marker marker = new Marker(binding.mapView);
@@ -795,6 +1255,8 @@ public class MainActivity extends AppCompatActivity implements
                 binding.mapView.invalidate();
 
                 binding.locationInfo.setText(String.format("Starred Place: %s\nLat: %.6f, Lon: %.6f", name, lat, lon));
+                
+                // Enable navigate button when a starred place is selected
                 binding.btnNavigate.setEnabled(true);
 
                 selectedLocation = point;
