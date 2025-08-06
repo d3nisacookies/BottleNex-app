@@ -1,18 +1,18 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- To commit -->
+
 <androidx.constraintlayout.widget.ConstraintLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent">
 
-    <!-- Unified Top AppBar with blue background including toolbar and search -->
+
     <com.google.android.material.appbar.AppBarLayout
         android:id="@+id/appBarLayout"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:background="#2196F3"
-        android:elevation="4dp"
+        android:background="@color/system_background"
+        android:elevation="2dp"
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent">
@@ -23,21 +23,22 @@
             android:layout_height="?attr/actionBarSize"
             android:background="@android:color/transparent"
             app:title="@string/app_name"
-            app:titleTextColor="@android:color/white" />
+            app:titleTextColor="@color/black"
+            app:titleTextAppearance="@style/TextAppearance.BottleNex.Headline6" />
 
-        <!-- Search Bar inside AppBarLayout to share the blue background -->
-        <!-- White background with rounded corners drawable -->
+        <!-- Modern Search Bar with subtle styling -->
         <FrameLayout
             android:id="@+id/searchBarContainer"
             android:layout_width="match_parent"
             android:layout_height="56dp"
-            android:layout_marginStart="12dp"
-            android:layout_marginEnd="12dp"
-            android:layout_marginBottom="8dp"
+            android:layout_marginStart="16dp"
+            android:layout_marginEnd="16dp"
+            android:layout_marginBottom="12dp"
             android:background="@drawable/search_background"
             android:layout_gravity="bottom"
-            android:paddingStart="12dp"
-            android:paddingEnd="12dp">
+            android:paddingStart="16dp"
+            android:paddingEnd="16dp"
+            android:elevation="1dp">
 
             <!-- Left Search Icon Button -->
 
@@ -111,18 +112,18 @@
         android:layout_width="0dp"
         android:layout_height="0dp"
         app:layout_constraintTop_toBottomOf="@id/appBarLayout"
-        app:layout_constraintBottom_toTopOf="@+id/bottomPanel"
+        app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent" />
 
-    <!-- Map Controls on right -->
+    <!-- Modern Map Controls with card styling -->
     <LinearLayout
         android:id="@+id/mapControls"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_margin="16dp"
-        android:background="@android:color/white"
-        android:elevation="4dp"
+        android:background="@drawable/modern_card_background"
+        android:elevation="2dp"
         android:orientation="vertical"
         android:padding="8dp"
         app:layout_constraintTop_toBottomOf="@id/appBarLayout"
@@ -154,15 +155,16 @@
             android:src="@android:drawable/ic_menu_mylocation" />
     </LinearLayout>
 
-    <!-- Bottom Panel with green background -->
+    <!-- Modern Bottom Panel with card styling -->
     <LinearLayout
         android:id="@+id/bottomPanel"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:background="#4CAF50"
-        android:elevation="8dp"
+        android:background="@drawable/modern_card_background"
+        android:elevation="4dp"
         android:orientation="vertical"
         android:padding="20dp"
+        android:layout_margin="16dp"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent">
@@ -173,9 +175,8 @@
             android:layout_height="wrap_content"
             android:text="Tap on map to get location"
             android:textAlignment="center"
-            android:textSize="24sp"
-            android:textStyle="bold"
-            android:textColor="@android:color/white"
+            android:textAppearance="@style/TextAppearance.BottleNex.Headline5"
+            android:textColor="@color/black"
             android:lineSpacingExtra="4dp"
             android:paddingTop="8dp"
             android:paddingBottom="8dp" />
@@ -185,17 +186,17 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="8dp"
             android:orientation="horizontal">
-
+it
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btnNavigate"
-                style="@style/Widget.Material3.Button.OutlinedButton"
+                style="@style/Widget.Material3.Button"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_marginStart="8dp"
                 android:layout_marginEnd="4dp"
                 android:layout_weight="1"
                 android:text="Navigate"
-                android:textSize="18sp"
+                android:textAppearance="@style/TextAppearance.BottleNex.Button"
                 android:enabled="false" />
 
             <com.google.android.material.button.MaterialButton
@@ -207,17 +208,20 @@
                 android:layout_marginEnd="8dp"
                 android:layout_weight="1"
                 android:text="Cancel"
-                android:textSize="18sp"
+                android:textAppearance="@style/TextAppearance.BottleNex.Button"
                 android:visibility="gone" />
         </LinearLayout>
 
-        <!-- Bottom bar buttons row -->
+        <!-- Modern bottom navigation -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="56dp"
             android:orientation="horizontal"
             android:gravity="center"
-            android:layout_marginTop="16dp">
+            android:layout_marginTop="20dp"
+            android:background="@drawable/modern_card_background"
+            android:elevation="2dp"
+            android:padding="8dp">
 
             <ImageButton
                 android:id="@+id/btnNavigation"
@@ -260,12 +264,13 @@
         </LinearLayout>
     </LinearLayout>
 
-    <Button
+    <com.google.android.material.button.MaterialButton
         android:id="@+id/btnJourney"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="Start Navigation"
         android:visibility="gone"
+        android:textAppearance="@style/TextAppearance.BottleNex.Button"
         app:layout_constraintBottom_toTopOf="@id/bottomPanel"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
@@ -276,9 +281,8 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text=""
-        android:textSize="20sp"
-        android:textStyle="bold"
-        android:textColor="@android:color/holo_green_dark"
+        android:textAppearance="@style/TextAppearance.BottleNex.Headline6"
+        android:textColor="@color/green_500"
         android:visibility="gone"
         app:layout_constraintBottom_toTopOf="@id/btnJourney"
         app:layout_constraintStart_toStartOf="parent"

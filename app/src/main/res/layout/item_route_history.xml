@@ -5,58 +5,58 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:layout_margin="8dp"
-    app:cardCornerRadius="8dp"
-    app:cardElevation="4dp">
+    app:cardCornerRadius="12dp"
+    app:cardElevation="2dp"
+    app:cardBackgroundColor="@color/secondary_system_background">
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        android:padding="16dp">
+        android:padding="20dp">
 
         <!-- Route Information -->
         <TextView
             android:id="@+id/tvRouteInfo"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:textSize="16sp"
-            android:textStyle="bold"
-            android:textColor="@android:color/black"
-            android:layout_marginBottom="8dp" />
+            android:textAppearance="@style/TextAppearance.BottleNex.Headline6"
+            android:textColor="@color/black"
+            android:layout_marginBottom="12dp" />
 
         <!-- Date and Time -->
         <TextView
             android:id="@+id/tvDateTime"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:textSize="12sp"
-            android:textColor="@android:color/darker_gray"
-            android:layout_marginBottom="8dp" />
+            android:textAppearance="@style/TextAppearance.BottleNex.Caption"
+            android:textColor="@color/system_gray"
+            android:layout_marginBottom="12dp" />
 
         <!-- Distance and Duration -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="horizontal"
-            android:layout_marginBottom="8dp">
+            android:layout_marginBottom="12dp">
 
             <TextView
                 android:id="@+id/tvDistance"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:textSize="14sp"
-                android:textColor="@android:color/holo_blue_dark"
+                android:textAppearance="@style/TextAppearance.BottleNex.Body2"
+                android:textColor="@color/blue_500"
                 android:drawableStart="@drawable/car"
-                android:drawablePadding="4dp" />
+                android:drawablePadding="8dp" />
 
             <TextView
                 android:id="@+id/tvDuration"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:textSize="14sp"
-                android:textColor="@android:color/holo_green_dark"
+                android:textAppearance="@style/TextAppearance.BottleNex.Body2"
+                android:textColor="@color/green_500"
                 android:gravity="end" />
 
         </LinearLayout>
@@ -72,20 +72,20 @@
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:textSize="12sp"
-                android:textColor="@android:color/darker_gray" />
+                android:textAppearance="@style/TextAppearance.BottleNex.Caption"
+                android:textColor="@color/system_gray" />
 
             <TextView
                 android:id="@+id/tvEndTime"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:textSize="12sp"
-                android:textColor="@android:color/darker_gray"
+                android:textAppearance="@style/TextAppearance.BottleNex.Caption"
+                android:textColor="@color/system_gray"
                 android:gravity="end" />
 
         </LinearLayout>
 
     </LinearLayout>
 
-</androidx.cardview.widget.CardView> 
+</androidx.cardview.widget.CardView>

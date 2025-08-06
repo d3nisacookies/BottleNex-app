@@ -4,7 +4,7 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#2196F3">
+    android:background="@color/system_background">
 
     <!-- Toolbar -->
     <com.google.android.material.appbar.MaterialToolbar
@@ -13,7 +13,8 @@
         android:layout_height="wrap_content"
         android:background="@android:color/transparent"
         app:title="Personal Tools"
-        app:titleTextColor="#000000"
+        app:titleTextColor="@color/black"
+        app:titleTextAppearance="@style/TextAppearance.BottleNex.Headline6"
         app:navigationIcon="@android:drawable/ic_menu_revert"
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintStart_toStartOf="parent"
@@ -42,20 +43,19 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="Give Feedback"
-                android:textSize="24sp"
-                android:textStyle="bold"
-                android:textColor="#000000"
+                android:textAppearance="@style/TextAppearance.BottleNex.Headline2"
+                android:textColor="@color/black"
                 android:layout_gravity="center_horizontal"
-                android:layout_marginBottom="24dp" />
+                android:layout_marginBottom="32dp" />
 
             <!-- Rating Section -->
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="Rating:"
-                android:textSize="16sp"
-                android:textColor="#000000"
-                android:layout_marginBottom="8dp" />
+                android:textAppearance="@style/TextAppearance.BottleNex.Subtitle1"
+                android:textColor="@color/black"
+                android:layout_marginBottom="12dp" />
 
             <RatingBar
                 android:id="@+id/ratingBar"
@@ -64,64 +64,73 @@
                 android:numStars="5"
                 android:stepSize="1.0"
                 android:rating="5"
-                android:progressTint="#FFD700"
+                android:progressTint="@color/blue_500"
                 android:layout_gravity="center_horizontal"
-                android:layout_marginBottom="24dp" />
+                android:layout_marginBottom="32dp" />
 
             <!-- Category Section -->
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="Category:"
-                android:textSize="16sp"
-                android:textColor="#000000"
-                android:layout_marginBottom="8dp" />
+                android:textAppearance="@style/TextAppearance.BottleNex.Subtitle1"
+                android:textColor="@color/black"
+                android:layout_marginBottom="12dp" />
 
-            <EditText
-                android:id="@+id/categoryInput"
+            <com.google.android.material.textfield.TextInputLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:background="@android:drawable/edit_text"
-                android:padding="12dp"
-                android:hint="Enter category"
-                android:textColor="#000000"
-                android:textColorHint="#888888"
-                android:layout_marginBottom="24dp" />
+                android:layout_marginBottom="24dp"
+                android:hint="Enter category">
+
+                <com.google.android.material.textfield.TextInputEditText
+                    android:id="@+id/categoryInput"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:background="@drawable/modern_input_background"
+                    android:padding="16dp"
+                    android:textColor="@color/black" />
+
+            </com.google.android.material.textfield.TextInputLayout>
 
             <!-- Feedback Text Section -->
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="Your Review:"
-                android:textSize="16sp"
-                android:textColor="#000000"
-                android:layout_marginBottom="8dp" />
+                android:textAppearance="@style/TextAppearance.BottleNex.Subtitle1"
+                android:textColor="@color/black"
+                android:layout_marginBottom="12dp" />
 
             <!-- Text Box -->
-            <EditText
-                android:id="@+id/feedbackInput"
+            <com.google.android.material.textfield.TextInputLayout
                 android:layout_width="match_parent"
-                android:layout_height="200dp"
-                android:background="@android:drawable/edit_text"
-                android:gravity="top|start"
-                android:padding="12dp"
-                android:hint="Enter your review"
-                android:textColor="#000000"
-                android:textColorHint="#888888"
-                android:inputType="textMultiLine"
-                android:scrollbars="vertical" />
+                android:layout_height="wrap_content"
+                android:hint="Enter your review">
+
+                <com.google.android.material.textfield.TextInputEditText
+                    android:id="@+id/feedbackInput"
+                    android:layout_width="match_parent"
+                    android:layout_height="200dp"
+                    android:background="@drawable/modern_input_background"
+                    android:gravity="top|start"
+                    android:padding="16dp"
+                    android:textColor="@color/black"
+                    android:inputType="textMultiLine"
+                    android:scrollbars="vertical" />
+
+            </com.google.android.material.textfield.TextInputLayout>
 
         </LinearLayout>
     </ScrollView>
 
     <!-- Submit Button -->
-    <Button
+    <com.google.android.material.button.MaterialButton
         android:id="@+id/submitButton"
         android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
+        android:layout_height="56dp"
         android:text="SUBMIT"
-        android:backgroundTint="#FFFFFF"
-        android:textColor="#2196F3"
+        android:textAppearance="@style/TextAppearance.BottleNex.Button"
         android:layout_marginBottom="24dp"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintStart_toStartOf="parent"

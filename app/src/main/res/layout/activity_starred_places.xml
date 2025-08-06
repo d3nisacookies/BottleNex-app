@@ -3,10 +3,24 @@
     android:orientation="vertical"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:background="@color/system_background"
     android:padding="16dp">
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Starred Places"
+        android:textAppearance="@style/TextAppearance.BottleNex.Headline2"
+        android:textColor="@color/black"
+        android:gravity="center"
+        android:layout_marginBottom="16dp" />
 
     <ListView
         android:id="@+id/listViewStarred"
         android:layout_width="match_parent"
-        android:layout_height="match_parent" />
+        android:layout_height="match_parent"
+        android:background="@drawable/modern_card_background"
+        android:elevation="2dp"
+        android:divider="@color/system_gray5"
+        android:dividerHeight="1dp" />
 </LinearLayout>

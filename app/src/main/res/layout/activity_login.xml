@@ -5,7 +5,7 @@
     android:id="@+id/main"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#0099FF"
+    android:background="@color/system_background"
     tools:context=".LoginActivity">
 
     <androidx.constraintlayout.widget.Guideline
@@ -20,48 +20,68 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="Log In"
-        android:textSize="34sp"
-        android:textStyle="bold"
+        android:textAppearance="@style/TextAppearance.BottleNex.Headline1"
         app:layout_constraintTop_toTopOf="@+id/guideline_center"
-        app:layout_constraintBottom_toTopOf="@+id/login_username"
+        app:layout_constraintBottom_toTopOf="@+id/username_layout"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintHorizontal_bias="0.5" />
 
-    <EditText
-        android:id="@+id/login_username"
+    <com.google.android.material.textfield.TextInputLayout
+        android:id="@+id/username_layout"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
+        android:layout_marginStart="32dp"
+        android:layout_marginEnd="32dp"
         android:layout_marginTop="16dp"
         android:layout_marginBottom="12dp"
-        android:ems="10"
         android:hint="Username"
-        android:inputType="text"
         app:layout_constraintTop_toBottomOf="@+id/textView4"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintHorizontal_bias="0.5" />
+        app:layout_constraintHorizontal_bias="0.5">
 
-    <EditText
-        android:id="@+id/login_password"
+        <com.google.android.material.textfield.TextInputEditText
+            android:id="@+id/login_username"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:inputType="text"
+            android:background="@drawable/modern_input_background"
+            android:padding="16dp" />
+
+    </com.google.android.material.textfield.TextInputLayout>
+
+    <com.google.android.material.textfield.TextInputLayout
+        android:id="@+id/password_layout"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
+        android:layout_marginStart="32dp"
+        android:layout_marginEnd="32dp"
         android:layout_marginBottom="16dp"
-        android:ems="10"
         android:hint="Password"
-        android:inputType="textPassword"
-        app:layout_constraintTop_toBottomOf="@+id/login_username"
+        app:passwordToggleEnabled="true"
+        app:layout_constraintTop_toBottomOf="@+id/username_layout"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintHorizontal_bias="0.5" />
+        app:layout_constraintHorizontal_bias="0.5">
 
-    <Button
+        <com.google.android.material.textfield.TextInputEditText
+            android:id="@+id/login_password"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:inputType="textPassword"
+            android:background="@drawable/modern_input_background"
+            android:padding="16dp" />
+
+    </com.google.android.material.textfield.TextInputLayout>
+
+    <com.google.android.material.button.MaterialButton
         android:id="@+id/login_button"
         android:layout_width="220dp"
-        android:layout_height="50dp"
+        android:layout_height="56dp"
         android:text="Log In"
-        android:backgroundTint="#6FCF97"
-        app:layout_constraintTop_toBottomOf="@+id/login_password"
+        android:textAppearance="@style/TextAppearance.BottleNex.Button"
+        app:layout_constraintTop_toBottomOf="@+id/password_layout"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintHorizontal_bias="0.5" />
@@ -71,8 +91,8 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="Forgot your password?"
-        android:textColor="#000000"
-        android:textSize="16sp"
+        android:textAppearance="@style/TextAppearance.BottleNex.Body1"
+        android:textColor="@color/blue_500"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
