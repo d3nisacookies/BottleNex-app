@@ -57,6 +57,7 @@ firebase-auth = { group = "com.google.firebase", name = "firebase-auth" }
 firebase-storage = { group = "com.google.firebase", name = "firebase-storage" }
 firebase-crashlytics = { group = "com.google.firebase", name = "firebase-crashlytics" }
 play-services-location = { group = "com.google.android.gms", name = "play-services-location", version.ref = "playServicesLocation" }
+recyclerview = { group = "androidx.recyclerview", name = "recyclerview", version = "1.3.2" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

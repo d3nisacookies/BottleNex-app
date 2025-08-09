@@ -106,17 +106,9 @@ public class NavigationOverlay extends Overlay {
     
     @Override
     public void draw(Canvas canvas, MapView mapView, boolean shadow) {
-        if (shadow || navigationSteps == null || navigationSteps.isEmpty() || currentStepIndex >= navigationSteps.size()) {
-            return;
-        }
-        
-        RoutePlanner.NavigationStep currentStep = navigationSteps.get(currentStepIndex);
-        if (currentStep == null) {
-            return;
-        }
-        
-        // Draw navigation instruction at the top of the screen
-        drawNavigationInstruction(canvas, currentStep, mapView.getWidth(), mapView.getHeight());
+        // Navigation instructions are now shown in the bottom panel only
+        // No drawing on the map overlay to keep the map clean
+        return;
     }
     
     private void drawNavigationInstruction(Canvas canvas, RoutePlanner.NavigationStep step, int screenWidth, int screenHeight) {

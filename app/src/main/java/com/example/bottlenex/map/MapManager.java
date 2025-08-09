@@ -62,6 +62,7 @@ public class MapManager {
     private FusedLocationProviderClient fusedLocationClient;
     private LocationCallback locationCallback;
     private NavigationOverlay navigationOverlay;
+    private TrafficOverlay trafficOverlay;
     private final List<Marker> markers = new ArrayList<>();
     private OnMapClickListener onMapClickListener;
     private OnLocationUpdateListener onLocationUpdateListener;
@@ -125,9 +126,14 @@ public class MapManager {
             // Setup map click listener
             setupMapClickListener();
             
-            // Setup navigation overlay
-            navigationOverlay = new NavigationOverlay(context, mapView);
-            mapView.getOverlays().add(navigationOverlay);
+                    // Setup navigation overlay
+        navigationOverlay = new NavigationOverlay(context, mapView);
+        mapView.getOverlays().add(navigationOverlay);
+        
+        // Setup traffic overlay
+        trafficOverlay = new TrafficOverlay(context, mapView);
+        mapView.getOverlays().add(trafficOverlay);
+        Log.d(TAG, "Traffic overlay added to map. Total overlays: " + mapView.getOverlays().size());
             
         } catch (Exception e) {
             Log.e(TAG, "Error setting up map", e);
@@ -383,7 +389,7 @@ public class MapManager {
         routeLine = new Polyline();
         routeLine.setPoints(points);
         routeLine.setColor(Color.BLUE);
-        routeLine.setWidth(8f);
+        routeLine.setWidth(6f); // Visible route line thickness
 
         mapView.getOverlays().add(routeLine);
         mapView.invalidate();
@@ -395,6 +401,12 @@ public class MapManager {
                 mapView.getOverlays().remove(routeLine);
                 routeLine = null;
                 mapView.invalidate();
+            }
+            
+            // Also clear traffic overlay when route is cleared
+            if (trafficOverlay != null) {
+                trafficOverlay.setTrafficOverlayVisible(false);
+                Log.d(TAG, "Traffic overlay cleared along with route");
             }
         } catch (Exception e) {
             Log.e(TAG, "Error clearing route", e);
@@ -480,6 +492,51 @@ public class MapManager {
             
             // Auto-follow will resume automatically after 7 seconds
         }
+    }
+    
+    // Traffic Overlay Methods
+    public void showTrafficOverlay(boolean show) {
+        Log.d(TAG, "showTrafficOverlay called with show=" + show + ", trafficOverlay null=" + (trafficOverlay == null));
+        if (trafficOverlay != null) {
+            trafficOverlay.setTrafficOverlayVisible(show);
+            Log.d(TAG, "Traffic overlay visibility set to: " + show);
+        } else {
+            Log.w(TAG, "Traffic overlay is null, cannot set visibility");
+        }
+    }
+    
+    public void updateTrafficPredictions() {
+        if (trafficOverlay != null) {
+            trafficOverlay.updateTrafficPredictions();
+        }
+    }
+    
+    public void forceRefreshTrafficOverlay() {
+        if (trafficOverlay != null) {
+            trafficOverlay.forceRefresh();
+        }
+    }
+    
+    public String getTrafficLevelForLocation(GeoPoint location) {
+        if (trafficOverlay != null) {
+            return trafficOverlay.getTrafficLevelForLocation(location);
+        }
+        return "Low";
+    }
+    
+    public String getTrafficLevelForRoad(String roadName) {
+        if (trafficOverlay != null) {
+            return trafficOverlay.getTrafficLevelForRoad(roadName);
+        }
+        return "Low";
+    }
+    
+    public NavigationOverlay getNavigationOverlay() {
+        return navigationOverlay;
+    }
+    
+    public TrafficOverlay getTrafficOverlay() {
+        return trafficOverlay;
     }
 
 }

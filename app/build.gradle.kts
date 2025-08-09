@@ -61,6 +61,7 @@ dependencies {
     implementation(libs.material)
     implementation(libs.activity)
     implementation(libs.constraintlayout)
+    implementation(libs.recyclerview)
 
     // Lifecycle components
     implementation(libs.lifecycle.viewmodel)
@@ -98,6 +99,12 @@ dependencies {
 
     // OpenStreetMap
     implementation(libs.osmdroid)
+
+    // ML Dependencies for Traffic Prediction
+    implementation("org.tensorflow:tensorflow-lite:2.14.0")
+    implementation("org.tensorflow:tensorflow-lite-support:0.4.4")
+    implementation("org.tensorflow:tensorflow-lite-metadata:0.4.4")
+    implementation("org.tensorflow:tensorflow-lite-gpu:2.14.0")
 
     // Testing
     testImplementation(libs.junit)

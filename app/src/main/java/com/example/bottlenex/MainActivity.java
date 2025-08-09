@@ -34,6 +34,7 @@ import java.util.ArrayList;
 import org.osmdroid.views.overlay.Marker;
 
 import java.io.IOException;
+import java.util.Calendar;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
@@ -51,6 +52,7 @@ import java.util.HashSet;
 import java.util.Set;
 import com.example.bottlenex.OSMSpeedCameraFetcher;
 import com.example.bottlenex.RouteHistory;
+import com.example.bottlenex.ml.TensorFlowTrafficPredictor;
 import android.view.View;
 import android.view.LayoutInflater;
 import android.widget.TextView;
@@ -108,6 +110,11 @@ public class MainActivity extends AppCompatActivity implements
     private Runnable searchRunnable;
     private android.widget.ListView suggestionListView;
     private android.widget.ArrayAdapter<String> suggestionAdapter;
+
+    // Traffic prediction variables
+    private boolean showTrafficOverlay = false;
+    private android.os.Handler trafficUpdateHandler = new android.os.Handler();
+    private Runnable trafficUpdateRunnable;
 
     private void saveStarred(String name, double lat, double lon) {
         SharedPreferences prefs = getSharedPreferences("starred_places", MODE_PRIVATE);
@@ -177,6 +184,9 @@ public class MainActivity extends AppCompatActivity implements
         // ini dbhelper for rh
         databaseHelper = new DatabaseHelper(this);
         
+        // Initialize ML predictor for traffic analysis
+        mlPredictor = new TensorFlowTrafficPredictor(this);
+        
         // test db conn
         try {
             databaseHelper.getReadableDatabase();
@@ -241,6 +251,12 @@ public class MainActivity extends AppCompatActivity implements
                 @Override
                 public boolean onQueryTextChange(String newText) {
                     if (newText == null || newText.trim().isEmpty()) {
+                        hideSearchSuggestions();
+                        return false;
+                    }
+                    
+                    // Don't show suggestions during navigation
+                    if (isNavigating) {
                         hideSearchSuggestions();
                         return false;
                     }
@@ -355,6 +371,10 @@ public class MainActivity extends AppCompatActivity implements
 
         // Cancel route button
         binding.btnCancelRoute.setOnClickListener(v -> cancelRoute());
+
+        // Traffic prediction button handlers
+        binding.btnTrafficOverlay.setOnClickListener(v -> toggleTrafficOverlay());
+        binding.btnRouteTraffic.setOnClickListener(v -> showTrafficPredictionForRoute());
     }
 
     private void saveFavourite(String query) {
@@ -367,6 +387,9 @@ public class MainActivity extends AppCompatActivity implements
     }
 
     private void performSearch(String query) {
+        // Always hide suggestions when performing search
+        hideSearchSuggestions();
+        
         Geocoder geocoder = new Geocoder(this, Locale.getDefault());
         try {
             List<Address> addresses = geocoder.getFromLocationName(query, 5); // Get up to 5 results
@@ -513,6 +536,9 @@ public class MainActivity extends AppCompatActivity implements
     }
     
     private void selectLocationFromAddress(Address address, String displayName) {
+        // Hide suggestions when location is selected
+        hideSearchSuggestions();
+        
         GeoPoint point = new GeoPoint(address.getLatitude(), address.getLongitude());
 
         // Center on destination and temporarily disable auto-follow
@@ -529,15 +555,14 @@ public class MainActivity extends AppCompatActivity implements
 
         // Update selected location and UI
         selectedLocation = point;
-        binding.locationInfo.setText(String.format("Found: %s\nLat: %.6f, Lon: %.6f",
-                displayName, point.getLatitude(), point.getLongitude()));
+        binding.locationInfo.setText(displayName + " • Tap Navigate to start route");
         
         // Enable navigate button when a location is found
         binding.btnNavigate.setEnabled(true);
         
         // Only update other UI elements if we're not already in navigation mode
         if (!isNavigating) {
-            binding.btnCancelRoute.setVisibility(View.GONE);
+            binding.btnCancelRoute.setVisibility(View.VISIBLE);  // Show Cancel button to clear location
             binding.btnJourney.setVisibility(View.GONE);
         }
         // If we're navigating, keep the current navigation state intact
@@ -603,7 +628,7 @@ public class MainActivity extends AppCompatActivity implements
         
         // Only update other UI elements if we're not already in navigation mode
         if (!isNavigating) {
-            binding.btnCancelRoute.setVisibility(View.GONE);
+            binding.btnCancelRoute.setVisibility(View.VISIBLE);  // Show Cancel button to clear location
             binding.btnJourney.setVisibility(View.GONE);
         }
         // If we're navigating, keep the current navigation state intact
@@ -853,6 +878,7 @@ public class MainActivity extends AppCompatActivity implements
         // Update UI state
         binding.btnCancelRoute.setVisibility(View.VISIBLE);
         binding.btnNavigate.setVisibility(View.GONE);
+        binding.trafficButtonsLayout.setVisibility(View.VISIBLE);
     }
 
 
@@ -864,6 +890,9 @@ public class MainActivity extends AppCompatActivity implements
             isNavigating = true;
             binding.btnJourney.setText("Finish Navigation");
             binding.tvJourneyState.setVisibility(View.GONE); // Hide the redundant message
+            
+            // Hide search suggestions during navigation
+            hideSearchSuggestions();
             
             // Start tracking journey for route history
             journeyStartTime = System.currentTimeMillis();
@@ -890,6 +919,11 @@ public class MainActivity extends AppCompatActivity implements
         binding.btnJourney.setText("Start Navigation");
         binding.tvJourneyState.setVisibility(View.GONE);
         
+        // Hide navigation instruction
+        binding.navigationInstruction.setVisibility(View.GONE);
+        
+        // Search suggestions will be automatically re-enabled since isNavigating = false
+        
         // Save journey to route history
         saveJourneyToHistory();
         
@@ -906,12 +940,16 @@ public class MainActivity extends AppCompatActivity implements
         selectedLocation = null;
         currentRouteData = null;
         
+        // Clear stored traffic analysis info
+        originalLocationInfo = "";
+        
         // Reset UI to initial state
         binding.locationInfo.setText("Tap on map to get location");
         binding.btnNavigate.setEnabled(false);
         binding.btnNavigate.setVisibility(View.VISIBLE);
         binding.btnCancelRoute.setVisibility(View.GONE);
         binding.btnJourney.setVisibility(View.GONE);
+        binding.trafficButtonsLayout.setVisibility(View.GONE);
         
         // Clear search view
         if (binding.searchView != null) {
@@ -948,10 +986,58 @@ public class MainActivity extends AppCompatActivity implements
         // Format time in a user-friendly way
         String timeText = formatTimeForDisplay(remainingTime);
         
-        // Format and display the info with arrival time
-        String info = String.format("Remaining: %.1f km, %s • Arrive @ %s", 
+        // Format and display the info with arrival time (shorter format)
+        String info = String.format("%.1fkm • %s • %s", 
             remainingDistance / 1000.0, timeText, arrivalTime);
-        binding.locationInfo.setText(info);
+        
+        // Only update location info if we're not currently showing traffic analysis
+        String currentText = binding.locationInfo.getText().toString();
+        if (!currentText.contains("🚦 Route Traffic Analysis")) {
+            binding.locationInfo.setText(info);
+        }
+        
+        // Show navigation instruction if available
+        updateNavigationInstruction();
+        }
+    }
+    
+    private void updateNavigationInstruction() {
+        if (!isNavigating || mapManager == null) {
+            binding.navigationInstruction.setVisibility(View.GONE);
+            return;
+        }
+        
+        // Get current navigation step from NavigationOverlay
+        try {
+            if (mapManager.getNavigationOverlay() != null) {
+                com.example.bottlenex.routing.RoutePlanner.NavigationStep currentStep = 
+                    mapManager.getNavigationOverlay().getCurrentStep();
+                
+                if (currentStep != null) {
+                    String instruction = currentStep.instruction + " • " + 
+                        formatDistance(currentStep.distance);
+                    binding.navigationInstruction.setText(instruction);
+                    binding.navigationInstruction.setVisibility(View.VISIBLE);
+                } else {
+                    binding.navigationInstruction.setVisibility(View.GONE);
+                }
+            } else {
+                binding.navigationInstruction.setVisibility(View.GONE);
+            }
+        } catch (Exception e) {
+            Log.e("Navigation", "Error updating navigation instruction: " + e.getMessage());
+            binding.navigationInstruction.setVisibility(View.GONE);
+        }
+    }
+    
+    private String formatDistance(double distanceMeters) {
+        if (distanceMeters >= 1000) {
+            return String.format("%.1f km", distanceMeters / 1000.0);
+        } else if (distanceMeters >= 100) {
+            int roundedMeters = (int) Math.round(distanceMeters / 10.0) * 10;
+            return roundedMeters + "m";
+        } else {
+            return (int) distanceMeters + "m";
         }
     }
     
@@ -1085,12 +1171,18 @@ public class MainActivity extends AppCompatActivity implements
             mapManager.stopNavigation();
         }
         
+        // Hide navigation instruction
+        binding.navigationInstruction.setVisibility(View.GONE);
+        
         // Clear the selected location marker
         mapManager.clearMarkers();
         
         // Reset the selected location
         selectedLocation = null;
         currentRouteData = null;
+        
+        // Clear stored traffic analysis info
+        originalLocationInfo = "";
         
         // Reset UI to initial state
         binding.locationInfo.setText("Tap on map to get location");
@@ -1099,6 +1191,7 @@ public class MainActivity extends AppCompatActivity implements
         binding.btnCancelRoute.setVisibility(View.GONE);
         binding.btnJourney.setVisibility(View.GONE);
         binding.tvJourneyState.setVisibility(View.GONE);
+        binding.trafficButtonsLayout.setVisibility(View.GONE);
         
         // Clear search view
         if (binding.searchView != null) {
@@ -1155,6 +1248,192 @@ public class MainActivity extends AppCompatActivity implements
             e.printStackTrace();
         }
         return "Unknown Location";
+    }
+
+    // Traffic Prediction Methods
+    private void toggleTrafficOverlay() {
+        Log.d("TrafficOverlay", "toggleTrafficOverlay called, current state: " + showTrafficOverlay);
+        showTrafficOverlay = !showTrafficOverlay;
+        Log.d("TrafficOverlay", "New state: " + showTrafficOverlay);
+        
+        mapManager.showTrafficOverlay(showTrafficOverlay);
+        
+        if (showTrafficOverlay) {
+            startTrafficUpdates();
+            Toast.makeText(this, "Traffic overlay enabled", Toast.LENGTH_SHORT).show();
+            Log.d("TrafficOverlay", "Traffic overlay enabled");
+            // Force refresh to ensure visibility
+            mapManager.forceRefreshTrafficOverlay();
+            
+            // Additional debugging
+            Log.d("TrafficOverlay", "MapView null check: " + (binding.mapView == null));
+            if (binding.mapView != null) {
+                Log.d("TrafficOverlay", "MapView width: " + binding.mapView.getWidth() + ", height: " + binding.mapView.getHeight());
+            }
+        } else {
+            stopTrafficUpdates();
+            Toast.makeText(this, "Traffic overlay disabled", Toast.LENGTH_SHORT).show();
+            Log.d("TrafficOverlay", "Traffic overlay disabled");
+        }
+        
+        // Force map refresh to ensure overlay is visible
+        if (binding.mapView != null) {
+            binding.mapView.invalidate();
+            binding.mapView.postInvalidate();
+            Log.d("TrafficOverlay", "Map invalidate called");
+        } else {
+            Log.w("TrafficOverlay", "MapView is null, cannot invalidate");
+        }
+    }
+    
+    private void startTrafficUpdates() {
+        // Update traffic predictions every 5 minutes
+        trafficUpdateRunnable = new Runnable() {
+            @Override
+            public void run() {
+                if (showTrafficOverlay) {
+                    mapManager.updateTrafficPredictions();
+                    trafficUpdateHandler.postDelayed(this, 5 * 60 * 1000); // 5 minutes
+                }
+            }
+        };
+        trafficUpdateHandler.post(trafficUpdateRunnable);
+    }
+    
+    private void stopTrafficUpdates() {
+        if (trafficUpdateRunnable != null) {
+            trafficUpdateHandler.removeCallbacks(trafficUpdateRunnable);
+        }
+    }
+    
+    private String originalLocationInfo = ""; // Store original location info
+    private TensorFlowTrafficPredictor mlPredictor; // ML-based traffic predictor
+    
+    private void showTrafficPredictionForRoute() {
+        if (currentRouteData == null || currentRouteData.routePoints == null) {
+            Toast.makeText(this, "No route selected", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        
+        // Check if we're currently showing traffic info - if so, restore original
+        String currentText = binding.locationInfo.getText().toString();
+        if (currentText.contains("🚦 Route Traffic Analysis")) {
+            restoreOriginalLocationInfo();
+            Toast.makeText(this, "Route info restored", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        
+        // Store original location info if not already stored
+        if (originalLocationInfo.isEmpty()) {
+            originalLocationInfo = binding.locationInfo.getText().toString();
+        }
+        
+        // Analyze traffic along the route
+        StringBuilder trafficInfo = new StringBuilder();
+        trafficInfo.append("🚦 Route Traffic Analysis\n\n");
+        
+        // Check traffic at start, middle, and end points using ML predictions
+        List<GeoPoint> routePoints = currentRouteData.routePoints;
+        if (!routePoints.isEmpty()) {
+            // Use ML predictor for dynamic traffic analysis
+            String startTraffic = getMLTrafficPrediction(routePoints.get(0), 1);
+            String endTraffic = getMLTrafficPrediction(routePoints.get(routePoints.size() - 1), 2);
+            
+            // Get traffic level colors
+            int startColor = getTrafficLevelColor(startTraffic);
+            int endColor = getTrafficLevelColor(endTraffic);
+            
+            trafficInfo.append("📍 Start: ").append(startTraffic).append(" Traffic\n");
+            trafficInfo.append("🎯 End: ").append(endTraffic).append(" Traffic\n");
+            
+            // Check middle point if route is long enough
+            if (routePoints.size() > 2) {
+                String middleTraffic = getMLTrafficPrediction(routePoints.get(routePoints.size() / 2), 3);
+                trafficInfo.append("🔄 Middle: ").append(middleTraffic).append(" Traffic\n");
+            }
+            
+            // Add overall route assessment
+            String overallTraffic = getOverallRouteTraffic(startTraffic, endTraffic);
+            trafficInfo.append("\n📊 Overall Route: ").append(overallTraffic).append(" Traffic");
+            
+            // Add instruction to restore original view
+            trafficInfo.append("\n\n💡 Tap 'Congestion Info' again to return");
+        }
+        
+        // Display traffic info in the existing location info area
+        binding.locationInfo.setText(trafficInfo.toString());
+        
+        // Show a brief toast to confirm the action
+        Toast.makeText(this, "Route traffic analysis displayed", Toast.LENGTH_SHORT).show();
+    }
+    
+    private void restoreOriginalLocationInfo() {
+        if (!originalLocationInfo.isEmpty()) {
+            binding.locationInfo.setText(originalLocationInfo);
+            originalLocationInfo = ""; // Clear stored info
+        }
+    }
+    
+    private String getOverallRouteTraffic(String startTraffic, String endTraffic) {
+        // Simple logic to determine overall route traffic
+        if (startTraffic.equals("High") || endTraffic.equals("High")) {
+            return "High";
+        } else if (startTraffic.equals("Medium") || endTraffic.equals("Medium")) {
+            return "Medium";
+        } else {
+            return "Low";
+        }
+    }
+    
+    private int getTrafficLevelColor(String trafficLevel) {
+        switch (trafficLevel) {
+            case "Low":
+                return 0xFF4CAF50; // Green
+            case "Medium":
+                return 0xFFFF9800; // Orange
+            case "High":
+                return 0xFFF44336; // Red
+            default:
+                return 0xFF4CAF50; // Default green
+        }
+    }
+    
+    /**
+     * Get ML-based traffic prediction for a location
+     */
+    private String getMLTrafficPrediction(GeoPoint location, int junctionNumber) {
+        try {
+            if (mlPredictor != null) {
+                String prediction = mlPredictor.getCurrentTrafficPrediction(junctionNumber);
+                Log.d("TrafficAnalysis", "ML Prediction for junction " + junctionNumber + ": " + prediction);
+                return prediction;
+            } else {
+                Log.w("TrafficAnalysis", "ML predictor not initialized, using fallback");
+                return getFallbackTrafficPrediction(junctionNumber);
+            }
+        } catch (Exception e) {
+            Log.e("TrafficAnalysis", "Error getting ML prediction: " + e.getMessage());
+            return getFallbackTrafficPrediction(junctionNumber);
+        }
+    }
+    
+    /**
+     * Fallback traffic prediction when ML is not available
+     */
+    private String getFallbackTrafficPrediction(int junctionNumber) {
+        java.util.Calendar cal = java.util.Calendar.getInstance();
+        int hour = cal.get(Calendar.HOUR_OF_DAY);
+        
+        // Simple time-based logic
+        if (hour >= 7 && hour <= 9) { // Morning peak
+            return junctionNumber % 2 == 0 ? "High" : "Medium";
+        } else if (hour >= 17 && hour <= 19) { // Evening peak
+            return junctionNumber % 2 == 0 ? "High" : "Medium";
+        } else if (hour >= 22 || hour <= 5) { // Night
+            return "Low";
+        } else {
+            return junctionNumber % 3 == 0 ? "High" : junctionNumber % 3 == 1 ? "Medium" : "Low";
+        }
     }
 
     private void saveJourneyToHistory() {
