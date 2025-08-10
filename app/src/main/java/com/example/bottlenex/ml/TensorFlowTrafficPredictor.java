@@ -232,9 +232,9 @@ public class TensorFlowTrafficPredictor {
      * Convert prediction value to traffic level
      */
     private String convertToTrafficLevel(float prediction) {
-        if (prediction < 25.0f) {
+        if (prediction < 16.0f) {
             return "Low";
-        } else if (prediction < 40.0f) {
+        } else if (prediction < 41.0f) {
             return "Medium";
         } else {
             return "High";
@@ -245,9 +245,9 @@ public class TensorFlowTrafficPredictor {
      * Fallback prediction when ML model is not available
      */
     private String fallbackPrediction(double historicalAvg3h) {
-        if (historicalAvg3h < 25.0) {
+        if (historicalAvg3h < 16.0) {
             return "Low";
-        } else if (historicalAvg3h < 40.0) {
+        } else if (historicalAvg3h < 41.0) {
             return "Medium";
         } else {
             return "High";
