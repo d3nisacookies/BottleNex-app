@@ -117,13 +117,19 @@ public class TensorFlowTrafficPredictor {
         try {
             // Create and normalize feature vector
             float[] features = createNormalizedFeatureVector(junction, hour, dayOfWeek, 
-                                                           isWeekend, historicalAvg3h, historicalAvg24h);
+                                                           isWeekend, historicalAvg3h, historicalAvg24h, null);
+            
+            Log.d(TAG, "Raw features - avg3h: " + historicalAvg3h + ", avg24h: " + historicalAvg24h + 
+                       ", hour: " + hour + ", isNight: " + (hour >= 22 || hour <= 5));
             
             // Run ML inference
             float prediction = runInference(features);
+            Log.d(TAG, "ML prediction raw value: " + prediction);
             
             // Convert prediction to traffic level
-            return convertToTrafficLevel(prediction);
+            String result = convertToTrafficLevel(prediction);
+            Log.d(TAG, "Final traffic level: " + result);
+            return result;
             
         } catch (Exception e) {
             Log.e(TAG, "Error during prediction: " + e.getMessage());
@@ -136,9 +142,9 @@ public class TensorFlowTrafficPredictor {
      */
     private float[] createNormalizedFeatureVector(int junction, int hour, int dayOfWeek, 
                                                  boolean isWeekend, double historicalAvg3h, 
-                                                 double historicalAvg24h) {
+                                                 double historicalAvg24h, Calendar selectedTime) {
         
-        Calendar cal = Calendar.getInstance();
+        Calendar cal = selectedTime != null ? selectedTime : Calendar.getInstance();
         int month = cal.get(Calendar.MONTH) + 1; // 1-12
         int dayOfMonth = cal.get(Calendar.DAY_OF_MONTH); // 1-31
         
@@ -221,9 +227,13 @@ public class TensorFlowTrafficPredictor {
             prediction += features[i] * hiddenWeights[i];
         }
         
+        Log.d(TAG, "Neural network weighted sum: " + prediction);
+        
         // Apply sigmoid activation and scale to traffic range
         prediction = (float) (1.0 / (1.0 + Math.exp(-prediction)));
+        Log.d(TAG, "After sigmoid: " + prediction);
         prediction = prediction * 50.0f; // Scale to 0-50 range
+        Log.d(TAG, "After scaling to 0-50: " + prediction);
         
         return prediction;
     }
@@ -272,6 +282,53 @@ public class TensorFlowTrafficPredictor {
     }
     
     /**
+     * Get traffic prediction for a specific time
+     */
+    public String getTrafficPredictionForTime(int junction, Calendar selectedTime) {
+        int hour = selectedTime.get(Calendar.HOUR_OF_DAY);
+        int dayOfWeek = selectedTime.get(Calendar.DAY_OF_WEEK);
+        boolean isWeekend = (dayOfWeek == Calendar.SATURDAY || dayOfWeek == Calendar.SUNDAY);
+        
+        // Get historical averages for the selected time
+        double avg3h = getHistoricalAverage3h(junction, hour);
+        double avg24h = getHistoricalAverage24h(junction);
+        
+        Log.d(TAG, "Traffic prediction for junction " + junction + " at " + hour + ":00 (selected time)");
+        Log.d(TAG, "Selected hour: " + hour + ", avg3h: " + avg3h + ", avg24h: " + avg24h);
+        Log.d(TAG, "Is night time: " + (hour >= 22 || hour <= 5));
+        return predictTrafficLevelWithTime(junction, hour, dayOfWeek, isWeekend, avg3h, avg24h, selectedTime);
+    }
+    
+    /**
+     * Predict traffic level with specific time context
+     */
+    private String predictTrafficLevelWithTime(int junction, int hour, int dayOfWeek, 
+                                             boolean isWeekend, double historicalAvg3h, 
+                                             double historicalAvg24h, Calendar selectedTime) {
+        
+        if (!isModelLoaded) {
+            Log.w(TAG, "Model not loaded, using fallback prediction");
+            return fallbackPrediction(historicalAvg3h);
+        }
+        
+        try {
+            // Create and normalize feature vector with selected time
+            float[] features = createNormalizedFeatureVector(junction, hour, dayOfWeek, 
+                                                           isWeekend, historicalAvg3h, historicalAvg24h, selectedTime);
+            
+            // Run ML inference
+            float prediction = runInference(features);
+            
+            // Convert prediction to traffic level
+            return convertToTrafficLevel(prediction);
+            
+        } catch (Exception e) {
+            Log.e(TAG, "Error during prediction: " + e.getMessage());
+            return fallbackPrediction(historicalAvg3h);
+        }
+    }
+    
+    /**
      * Get 3-hour historical average (simplified)
      */
     private double getHistoricalAverage3h(int junction, int hour) {
@@ -282,13 +339,16 @@ public class TensorFlowTrafficPredictor {
         // Add time-based variation
         if (hour >= 7 && hour <= 9) { // Morning peak
             baseValue *= 1.5;
+            Log.d(TAG, "Morning peak: hour=" + hour + ", baseValue=" + baseValue);
         } else if (hour >= 17 && hour <= 19) { // Evening peak
             baseValue *= 1.8;
+            Log.d(TAG, "Evening peak: hour=" + hour + ", baseValue=" + baseValue);
         } else if (hour >= 22 || hour <= 5) { // Night
             baseValue *= 0.3;
+            Log.d(TAG, "Night time: hour=" + hour + ", baseValue=" + baseValue);
         }
         
-        return baseValue + (Math.random() * 10.0 - 5.0); // Add some randomness
+        return baseValue;
     }
     
     /**
@@ -296,7 +356,7 @@ public class TensorFlowTrafficPredictor {
      */
     private double getHistoricalAverage24h(int junction) {
         // In real app, this would query a database
-        return 25.0 + (junction * 3.0) + (Math.random() * 8.0 - 4.0);
+        return 25.0 + (junction * 3.0);
     }
     
     /**

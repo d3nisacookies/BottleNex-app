@@ -29,6 +29,7 @@ public class TrafficOverlay extends Overlay {
     private List<TrafficSegment> trafficSegments;
     private boolean showTrafficOverlay = false;
     private TensorFlowTrafficPredictor mlPredictor;
+    private Calendar customTrafficTime = null; // Store custom time for traffic prediction
     
     public TrafficOverlay(Context context, MapView mapView) {
         this.context = context;
@@ -113,10 +114,19 @@ public class TrafficOverlay extends Overlay {
             // Use segment index as junction number (1-4)
             int junction = (segmentIndex % 4) + 1;
             
-            // Get current time-based prediction
-            String prediction = mlPredictor.getCurrentTrafficPrediction(junction);
+            String prediction;
+            if (customTrafficTime != null) {
+                // Use custom time for prediction
+                prediction = mlPredictor.getTrafficPredictionForTime(junction, customTrafficTime);
+                Log.d(TAG, "ML Prediction for segment " + segmentIndex + " (junction " + junction + 
+                          ") at custom time " + String.format("%02d:%02d", customTrafficTime.get(Calendar.HOUR_OF_DAY), customTrafficTime.get(Calendar.MINUTE)) + 
+                          ": " + prediction);
+            } else {
+                // Get current time-based prediction
+                prediction = mlPredictor.getCurrentTrafficPrediction(junction);
+                Log.d(TAG, "ML Prediction for segment " + segmentIndex + " (junction " + junction + ") at current time: " + prediction);
+            }
             
-            Log.d(TAG, "ML Prediction for segment " + segmentIndex + " (junction " + junction + "): " + prediction);
             return prediction;
             
         } catch (Exception e) {
@@ -296,6 +306,17 @@ public class TrafficOverlay extends Overlay {
             mapView.invalidate();
             mapView.postInvalidate();
         }
+    }
+    
+    /**
+     * Set custom time for traffic prediction
+     */
+    public void setCustomTrafficTime(Calendar customTime) {
+        this.customTrafficTime = customTime;
+        Log.d(TAG, "Custom traffic time set to: " + 
+              (customTime != null ? 
+               String.format("%02d:%02d", customTime.get(Calendar.HOUR_OF_DAY), customTime.get(Calendar.MINUTE)) : 
+               "null (current time)"));
     }
     
     /**

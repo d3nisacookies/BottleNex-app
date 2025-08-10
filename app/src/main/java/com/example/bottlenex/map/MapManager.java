@@ -38,6 +38,7 @@ import com.google.android.gms.location.Priority;
 
 
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.List;
 
 import javax.inject.Inject;
@@ -537,6 +538,15 @@ public class MapManager {
     
     public TrafficOverlay getTrafficOverlay() {
         return trafficOverlay;
+    }
+    
+    /**
+     * Set custom time for traffic prediction
+     */
+    public void setCustomTrafficTime(Calendar customTime) {
+        if (trafficOverlay != null) {
+            trafficOverlay.setCustomTrafficTime(customTime);
+        }
     }
 
 }

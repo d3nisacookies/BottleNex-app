@@ -218,7 +218,7 @@
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btnCancelRoute"
-                style="@style/Widget.Material3.Button.OutlinedButton"
+                style="@style/Widget.BottleNex.Button.OutlinedButton"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_marginStart="4dp"
@@ -240,13 +240,13 @@
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btnTrafficOverlay"
-                style="@style/Widget.Material3.Button.OutlinedButton"
+                style="@style/Widget.BottleNex.Button.OutlinedButton"
                 android:layout_width="0dp"
                 android:layout_height="36dp"
+                android:layout_weight="1"
                 android:layout_marginStart="6dp"
                 android:layout_marginEnd="3dp"
-                android:layout_weight="1"
-                android:text="Congestion Prediction"
+                android:text="Predict Traffic"
                 android:textSize="11sp"
                 android:minHeight="0dp"
                 android:paddingTop="4dp"
@@ -254,13 +254,13 @@
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btnRouteTraffic"
-                style="@style/Widget.Material3.Button.OutlinedButton"
+                style="@style/Widget.BottleNex.Button.OutlinedButton"
                 android:layout_width="0dp"
                 android:layout_height="36dp"
                 android:layout_marginStart="3dp"
                 android:layout_marginEnd="6dp"
                 android:layout_weight="1"
-                android:text="Congestion Info"
+                android:text="Traffic Analysis"
                 android:textSize="11sp"
                 android:minHeight="0dp"
                 android:paddingTop="4dp"

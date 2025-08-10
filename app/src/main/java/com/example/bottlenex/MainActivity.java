@@ -58,6 +58,9 @@ import android.view.LayoutInflater;
 import android.widget.TextView;
 import android.widget.Button;
 import android.widget.ImageView;
+import android.widget.RadioButton;
+import android.widget.TimePicker;
+import androidx.appcompat.app.AlertDialog;
 
 
 
@@ -115,6 +118,7 @@ public class MainActivity extends AppCompatActivity implements
     private boolean showTrafficOverlay = false;
     private android.os.Handler trafficUpdateHandler = new android.os.Handler();
     private Runnable trafficUpdateRunnable;
+    private Calendar selectedTrafficTime = null; // Store user-selected time for traffic prediction
 
     private void saveStarred(String name, double lat, double lon) {
         SharedPreferences prefs = getSharedPreferences("starred_places", MODE_PRIVATE);
@@ -374,7 +378,17 @@ public class MainActivity extends AppCompatActivity implements
 
         // Traffic prediction button handlers
         binding.btnTrafficOverlay.setOnClickListener(v -> toggleTrafficOverlay());
-        binding.btnRouteTraffic.setOnClickListener(v -> showTrafficPredictionForRoute());
+        binding.btnRouteTraffic.setOnClickListener(v -> {
+            // Check if traffic analysis is already displayed
+            String currentText = binding.locationInfo.getText().toString();
+            if (currentText.contains("Traffic Analysis")) {
+                // If traffic analysis is already shown, just close it
+                showTrafficPredictionForRoute();
+            } else {
+                // If no traffic analysis is shown, show the time picker dialog
+                showCongestionInfoTimePickerDialog();
+            }
+        });
     }
 
     private void saveFavourite(String query) {
@@ -992,7 +1006,7 @@ public class MainActivity extends AppCompatActivity implements
         
         // Only update location info if we're not currently showing traffic analysis
         String currentText = binding.locationInfo.getText().toString();
-        if (!currentText.contains("🚦 Route Traffic Analysis")) {
+        if (!currentText.contains("Traffic Analysis")) {
             binding.locationInfo.setText(info);
         }
         
@@ -1253,30 +1267,205 @@ public class MainActivity extends AppCompatActivity implements
     // Traffic Prediction Methods
     private void toggleTrafficOverlay() {
         Log.d("TrafficOverlay", "toggleTrafficOverlay called, current state: " + showTrafficOverlay);
-        showTrafficOverlay = !showTrafficOverlay;
-        Log.d("TrafficOverlay", "New state: " + showTrafficOverlay);
         
-        mapManager.showTrafficOverlay(showTrafficOverlay);
-        
-        if (showTrafficOverlay) {
-            startTrafficUpdates();
-            Toast.makeText(this, "Traffic overlay enabled", Toast.LENGTH_SHORT).show();
-            Log.d("TrafficOverlay", "Traffic overlay enabled");
-            // Force refresh to ensure visibility
-            mapManager.forceRefreshTrafficOverlay();
-            
-            // Additional debugging
-            Log.d("TrafficOverlay", "MapView null check: " + (binding.mapView == null));
-            if (binding.mapView != null) {
-                Log.d("TrafficOverlay", "MapView width: " + binding.mapView.getWidth() + ", height: " + binding.mapView.getHeight());
-            }
+        if (!showTrafficOverlay) {
+            // Show time picker dialog when enabling traffic overlay
+            showTrafficTimePickerDialog();
         } else {
-            stopTrafficUpdates();
-            Toast.makeText(this, "Traffic overlay disabled", Toast.LENGTH_SHORT).show();
-            Log.d("TrafficOverlay", "Traffic overlay disabled");
+            // Disable traffic overlay
+            showTrafficOverlay = false;
+            selectedTrafficTime = null; // Reset selected time
+            disableTrafficOverlay();
+        }
+    }
+    
+    private void showTrafficTimePickerDialog() {
+        // Create a custom dialog with time picker options
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setTitle("Select Traffic Prediction Time");
+        
+        // Create custom layout for the dialog
+        View dialogView = getLayoutInflater().inflate(R.layout.dialog_traffic_time_picker, null);
+        builder.setView(dialogView);
+        
+        // Get references to dialog elements
+        RadioButton rbCurrentTime = dialogView.findViewById(R.id.rbCurrentTime);
+        RadioButton rbCustomTime = dialogView.findViewById(R.id.rbCustomTime);
+        TimePicker timePicker = dialogView.findViewById(R.id.timePicker);
+        
+        // Initially hide time picker
+        timePicker.setVisibility(View.GONE);
+        
+        // Show/hide time picker based on radio button selection
+        rbCurrentTime.setOnCheckedChangeListener((buttonView, isChecked) -> {
+            if (isChecked) {
+                timePicker.setVisibility(View.GONE);
+            }
+        });
+        
+        rbCustomTime.setOnCheckedChangeListener((buttonView, isChecked) -> {
+            if (isChecked) {
+                timePicker.setVisibility(View.VISIBLE);
+            }
+        });
+        
+        // Set up dialog buttons
+        builder.setPositiveButton("Predict", (dialog, which) -> {
+            if (rbCurrentTime.isChecked()) {
+                // Use current time
+                selectedTrafficTime = null;
+                
+                // Clear the custom time in MapManager
+                mapManager.setCustomTrafficTime(null);
+                
+                enableTrafficOverlay();
+                Toast.makeText(this, "Predicting traffic for current time", Toast.LENGTH_SHORT).show();
+            } else if (rbCustomTime.isChecked()) {
+                // Use selected time
+                Calendar now = Calendar.getInstance();
+                Calendar selectedTime = Calendar.getInstance();
+                selectedTime.set(Calendar.HOUR_OF_DAY, timePicker.getHour());
+                selectedTime.set(Calendar.MINUTE, timePicker.getMinute());
+                selectedTime.set(Calendar.SECOND, 0);
+                selectedTime.set(Calendar.MILLISECOND, 0);
+                
+                // If selected time is in the past, add a day
+                if (selectedTime.before(now)) {
+                    selectedTime.add(Calendar.DAY_OF_YEAR, 1);
+                }
+                
+                selectedTrafficTime = selectedTime;
+                
+                // Set the custom time in MapManager so TrafficOverlay can use it
+                mapManager.setCustomTrafficTime(selectedTime);
+                
+                enableTrafficOverlay();
+                
+                String timeStr = String.format("%02d:%02d", selectedTime.get(Calendar.HOUR_OF_DAY), selectedTime.get(Calendar.MINUTE));
+                Toast.makeText(this, "Predicting traffic for " + timeStr, Toast.LENGTH_SHORT).show();
+            }
+        });
+        
+        builder.setNegativeButton("Cancel", (dialog, which) -> {
+            dialog.dismiss();
+        });
+        
+        // Set current time as default
+        rbCurrentTime.setChecked(true);
+        
+        AlertDialog dialog = builder.create();
+        dialog.show();
+    }
+
+    private void showCongestionInfoTimePickerDialog() {
+        // Create a custom dialog with time picker options
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setTitle("Select Congestion Analysis Time");
+        
+        // Create custom layout for the dialog
+        View dialogView = getLayoutInflater().inflate(R.layout.dialog_traffic_time_picker, null);
+        builder.setView(dialogView);
+        
+        // Get references to dialog elements
+        RadioButton rbCurrentTime = dialogView.findViewById(R.id.rbCurrentTime);
+        RadioButton rbCustomTime = dialogView.findViewById(R.id.rbCustomTime);
+        TimePicker timePicker = dialogView.findViewById(R.id.timePicker);
+        
+        // Initially hide time picker
+        timePicker.setVisibility(View.GONE);
+        
+        // Show/hide time picker based on radio button selection
+        rbCurrentTime.setOnCheckedChangeListener((buttonView, isChecked) -> {
+            if (isChecked) {
+                timePicker.setVisibility(View.GONE);
+            }
+        });
+        
+        rbCustomTime.setOnCheckedChangeListener((buttonView, isChecked) -> {
+            if (isChecked) {
+                timePicker.setVisibility(View.VISIBLE);
+            }
+        });
+        
+        // Set up dialog buttons
+        builder.setPositiveButton("Analyze Congestion", (dialog, which) -> {
+            if (rbCurrentTime.isChecked()) {
+                // Use current time
+                selectedTrafficTime = null;
+                
+                // Clear the custom time in MapManager
+                mapManager.setCustomTrafficTime(null);
+                
+                showTrafficPredictionForRoute();
+                Toast.makeText(this, "Analyzing congestion for current time", Toast.LENGTH_SHORT).show();
+            } else if (rbCustomTime.isChecked()) {
+                // Use selected time
+                Calendar now = Calendar.getInstance();
+                Calendar selectedTime = Calendar.getInstance();
+                selectedTime.set(Calendar.HOUR_OF_DAY, timePicker.getHour());
+                selectedTime.set(Calendar.MINUTE, timePicker.getMinute());
+                selectedTime.set(Calendar.SECOND, 0);
+                selectedTime.set(Calendar.MILLISECOND, 0);
+                
+                // If selected time is in the past, add a day
+                if (selectedTime.before(now)) {
+                    selectedTime.add(Calendar.DAY_OF_YEAR, 1);
+                }
+                
+                selectedTrafficTime = selectedTime;
+                
+                // Set the custom time in MapManager so TrafficOverlay can use it
+                mapManager.setCustomTrafficTime(selectedTime);
+                
+                showTrafficPredictionForRoute();
+                
+                String timeStr = String.format("%02d:%02d", selectedTime.get(Calendar.HOUR_OF_DAY), selectedTime.get(Calendar.MINUTE));
+                Toast.makeText(this, "Analyzing congestion for " + timeStr, Toast.LENGTH_SHORT).show();
+            }
+        });
+        
+        builder.setNegativeButton("Cancel", (dialog, which) -> {
+            dialog.dismiss();
+        });
+        
+        // Set current time as default
+        rbCurrentTime.setChecked(true);
+        
+        AlertDialog dialog = builder.create();
+        dialog.show();
+    }
+    
+    private void enableTrafficOverlay() {
+        showTrafficOverlay = true;
+        mapManager.showTrafficOverlay(true);
+        startTrafficUpdates();
+        Log.d("TrafficOverlay", "Traffic overlay enabled");
+        mapManager.forceRefreshTrafficOverlay();
+        
+        // Additional debugging
+        Log.d("TrafficOverlay", "MapView null check: " + (binding.mapView == null));
+        if (binding.mapView != null) {
+            binding.mapView.getWidth();
+            binding.mapView.getHeight();
         }
         
         // Force map refresh to ensure overlay is visible
+        if (binding.mapView != null) {
+            binding.mapView.invalidate();
+            binding.mapView.postInvalidate();
+            Log.d("TrafficOverlay", "Map invalidate called");
+        } else {
+            Log.w("TrafficOverlay", "MapView is null, cannot invalidate");
+        }
+    }
+    
+    private void disableTrafficOverlay() {
+        mapManager.showTrafficOverlay(false);
+        stopTrafficUpdates();
+        Toast.makeText(this, "Traffic overlay disabled", Toast.LENGTH_SHORT).show();
+        Log.d("TrafficOverlay", "Traffic overlay disabled");
+        
+        // Force map refresh to ensure overlay is hidden
         if (binding.mapView != null) {
             binding.mapView.invalidate();
             binding.mapView.postInvalidate();
@@ -1292,6 +1481,10 @@ public class MainActivity extends AppCompatActivity implements
             @Override
             public void run() {
                 if (showTrafficOverlay) {
+                    Log.d("TrafficUpdates", "Updating traffic predictions, selectedTrafficTime: " + 
+                          (selectedTrafficTime != null ? 
+                           String.format("%02d:%02d", selectedTrafficTime.get(Calendar.HOUR_OF_DAY), selectedTrafficTime.get(Calendar.MINUTE)) : 
+                           "null (current time)"));
                     mapManager.updateTrafficPredictions();
                     trafficUpdateHandler.postDelayed(this, 5 * 60 * 1000); // 5 minutes
                 }
@@ -1317,7 +1510,7 @@ public class MainActivity extends AppCompatActivity implements
         
         // Check if we're currently showing traffic info - if so, restore original
         String currentText = binding.locationInfo.getText().toString();
-        if (currentText.contains("🚦 Route Traffic Analysis")) {
+        if (currentText.contains("Traffic Analysis")) {
             restoreOriginalLocationInfo();
             Toast.makeText(this, "Route info restored", Toast.LENGTH_SHORT).show();
             return;
@@ -1330,7 +1523,7 @@ public class MainActivity extends AppCompatActivity implements
         
         // Analyze traffic along the route
         StringBuilder trafficInfo = new StringBuilder();
-        trafficInfo.append("🚦 Route Traffic Analysis\n\n");
+        trafficInfo.append("Traffic Analysis\n\n");
         
         // Check traffic at start, middle, and end points using ML predictions
         List<GeoPoint> routePoints = currentRouteData.routePoints;
@@ -1343,28 +1536,28 @@ public class MainActivity extends AppCompatActivity implements
             int startColor = getTrafficLevelColor(startTraffic);
             int endColor = getTrafficLevelColor(endTraffic);
             
-            trafficInfo.append("📍 Start: ").append(startTraffic).append(" Traffic\n");
-            trafficInfo.append("🎯 End: ").append(endTraffic).append(" Traffic\n");
+            trafficInfo.append("Start: ").append(startTraffic).append(" Traffic\n");
+            trafficInfo.append("End: ").append(endTraffic).append(" Traffic\n");
             
             // Check middle point if route is long enough
             if (routePoints.size() > 2) {
                 String middleTraffic = getMLTrafficPrediction(routePoints.get(routePoints.size() / 2), 3);
-                trafficInfo.append("🔄 Middle: ").append(middleTraffic).append(" Traffic\n");
+                trafficInfo.append("Middle: ").append(middleTraffic).append(" Traffic\n");
             }
             
             // Add overall route assessment
             String overallTraffic = getOverallRouteTraffic(startTraffic, endTraffic);
-            trafficInfo.append("\n📊 Overall Route: ").append(overallTraffic).append(" Traffic");
+            trafficInfo.append("\nOverall Route: ").append(overallTraffic).append(" Traffic");
             
             // Add instruction to restore original view
-            trafficInfo.append("\n\n💡 Tap 'Congestion Info' again to return");
+            trafficInfo.append("\n\nTap 'Traffic Analysis' again to return");
         }
         
         // Display traffic info in the existing location info area
         binding.locationInfo.setText(trafficInfo.toString());
         
         // Show a brief toast to confirm the action
-        Toast.makeText(this, "Route traffic analysis displayed", Toast.LENGTH_SHORT).show();
+        Toast.makeText(this, "Traffic analysis displayed", Toast.LENGTH_SHORT).show();
     }
     
     private void restoreOriginalLocationInfo() {
@@ -1404,8 +1597,18 @@ public class MainActivity extends AppCompatActivity implements
     private String getMLTrafficPrediction(GeoPoint location, int junctionNumber) {
         try {
             if (mlPredictor != null) {
-                String prediction = mlPredictor.getCurrentTrafficPrediction(junctionNumber);
-                Log.d("TrafficAnalysis", "ML Prediction for junction " + junctionNumber + ": " + prediction);
+                String prediction;
+                if (selectedTrafficTime != null) {
+                    // Use selected time for prediction
+                    prediction = mlPredictor.getTrafficPredictionForTime(junctionNumber, selectedTrafficTime);
+                    Log.d("TrafficAnalysis", "ML Prediction for junction " + junctionNumber + " at " + 
+                          String.format("%02d:%02d", selectedTrafficTime.get(Calendar.HOUR_OF_DAY), selectedTrafficTime.get(Calendar.MINUTE)) + 
+                          ": " + prediction);
+                } else {
+                    // Use current time for prediction
+                    prediction = mlPredictor.getCurrentTrafficPrediction(junctionNumber);
+                    Log.d("TrafficAnalysis", "ML Prediction for junction " + junctionNumber + " (current time): " + prediction);
+                }
                 return prediction;
             } else {
                 Log.w("TrafficAnalysis", "ML predictor not initialized, using fallback");
@@ -1421,7 +1624,13 @@ public class MainActivity extends AppCompatActivity implements
      * Fallback traffic prediction when ML is not available
      */
     private String getFallbackTrafficPrediction(int junctionNumber) {
-        java.util.Calendar cal = java.util.Calendar.getInstance();
+        java.util.Calendar cal;
+        if (selectedTrafficTime != null) {
+            cal = selectedTrafficTime;
+        } else {
+            cal = java.util.Calendar.getInstance();
+        }
+        
         int hour = cal.get(Calendar.HOUR_OF_DAY);
         
         // Simple time-based logic
