@@ -5,7 +5,7 @@
     android:id="@+id/alertsLayout"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#0099FF">
+    android:background="@color/system_background">
 
     <!-- Toolbar -->
     <com.google.android.material.appbar.MaterialToolbar
@@ -14,7 +14,8 @@
         android:layout_height="wrap_content"
         android:background="@android:color/transparent"
         app:title="Personal Tools"
-        app:titleTextColor="@android:color/black"
+        app:titleTextColor="@color/black"
+        app:titleTextAppearance="@style/TextAppearance.BottleNex.Headline6"
         app:navigationIcon="@android:drawable/ic_menu_revert"
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintStart_toStartOf="parent"
@@ -26,9 +27,8 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="Alert Settings"
-        android:textColor="#000000"
-        android:textSize="28sp"
-        android:textStyle="bold"
+        android:textAppearance="@style/TextAppearance.BottleNex.Headline2"
+        android:textColor="@color/black"
         android:layout_marginTop="16dp"
         app:layout_constraintTop_toBottomOf="@id/toolbar"
         app:layout_constraintStart_toStartOf="parent"
@@ -39,8 +39,8 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="Configure your navigation alerts"
-        android:textColor="#000000"
-        android:textSize="16sp"
+        android:textAppearance="@style/TextAppearance.BottleNex.Body1"
+        android:textColor="@color/black"
         android:layout_marginTop="8dp"
         android:layout_marginHorizontal="20dp"
         android:gravity="center"
@@ -64,9 +64,10 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
-            android:background="#0099FF"
-            android:layout_marginBottom="10dp"
-            android:padding="16dp">
+            android:background="@drawable/modern_card_background"
+            android:layout_marginBottom="16dp"
+            android:padding="16dp"
+            android:elevation="2dp">
 
             <LinearLayout
                 android:layout_width="match_parent"
@@ -85,16 +86,15 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:text="Speed Limit Alert"
-                        android:textSize="18sp"
-                        android:textStyle="bold"
-                        android:textColor="#000000" />
+                        android:textAppearance="@style/TextAppearance.BottleNex.Subtitle1"
+                        android:textColor="@color/black" />
 
                     <TextView
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:text="Get notified when you exceed the speed limit"
-                        android:textSize="14sp"
-                        android:textColor="#000000"
+                        android:textAppearance="@style/TextAppearance.BottleNex.Body2"
+                        android:textColor="@color/black"
                         android:layout_marginTop="4dp" />
                 </LinearLayout>
 
@@ -103,8 +103,8 @@
                     android:layout_width="48dp"
                     android:layout_height="48dp"
                     android:checked="true"
-                    android:thumbTint="@android:color/white"
-                    android:trackTint="@android:color/white" />
+                    android:thumbTint="@color/blue_500"
+                    android:trackTint="@color/blue_500" />
             </LinearLayout>
         </LinearLayout>
 
@@ -113,9 +113,10 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
-            android:background="#0099FF"
-            android:layout_marginBottom="10dp"
-            android:padding="16dp">
+            android:background="@drawable/modern_card_background"
+            android:layout_marginBottom="16dp"
+            android:padding="16dp"
+            android:elevation="2dp">
 
             <LinearLayout
                 android:layout_width="match_parent"
@@ -134,16 +135,15 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:text="Road Incident Alert"
-                        android:textSize="18sp"
-                        android:textStyle="bold"
-                        android:textColor="#000000" />
+                        android:textAppearance="@style/TextAppearance.BottleNex.Subtitle1"
+                        android:textColor="@color/black" />
 
                     <TextView
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:text="Get notified about traffic incidents ahead"
-                        android:textSize="14sp"
-                        android:textColor="#000000"
+                        android:textAppearance="@style/TextAppearance.BottleNex.Body2"
+                        android:textColor="@color/black"
                         android:layout_marginTop="4dp" />
                 </LinearLayout>
 
@@ -152,8 +152,8 @@
                     android:layout_width="48dp"
                     android:layout_height="48dp"
                     android:checked="true"
-                    android:thumbTint="@android:color/white"
-                    android:trackTint="@android:color/white" />
+                    android:thumbTint="@color/blue_500"
+                    android:trackTint="@color/blue_500" />
             </LinearLayout>
         </LinearLayout>
 
@@ -162,8 +162,9 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
-            android:background="#0099FF"
-            android:padding="16dp">
+            android:background="@drawable/modern_card_background"
+            android:padding="16dp"
+            android:elevation="2dp">
 
             <LinearLayout
                 android:layout_width="match_parent"
@@ -182,16 +183,15 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:text="Speed Camera Alert"
-                        android:textSize="18sp"
-                        android:textStyle="bold"
-                        android:textColor="#000000" />
+                        android:textAppearance="@style/TextAppearance.BottleNex.Subtitle1"
+                        android:textColor="@color/black" />
 
                     <TextView
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:text="Get notified about speed cameras ahead"
-                        android:textSize="14sp"
-                        android:textColor="#000000"
+                        android:textAppearance="@style/TextAppearance.BottleNex.Body2"
+                        android:textColor="@color/black"
                         android:layout_marginTop="4dp" />
                 </LinearLayout>
 
@@ -200,8 +200,8 @@
                     android:layout_width="48dp"
                     android:layout_height="48dp"
                     android:checked="true"
-                    android:thumbTint="@android:color/white"
-                    android:trackTint="@android:color/white" />
+                    android:thumbTint="@color/blue_500"
+                    android:trackTint="@color/blue_500" />
             </LinearLayout>
         </LinearLayout>
     </LinearLayout>

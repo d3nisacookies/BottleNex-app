@@ -12,7 +12,7 @@ import android.widget.Toast;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.appcompat.widget.Toolbar;
+
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 import org.osmdroid.util.GeoPoint;
@@ -37,12 +37,11 @@ public class RouteHistoryActivity extends AppCompatActivity implements RouteHist
         // ini db helper
         databaseHelper = new DatabaseHelper(this);
 
-        Toolbar toolbar = findViewById(R.id.toolbar);
+        com.google.android.material.appbar.MaterialToolbar toolbar = findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
         if (getSupportActionBar() != null) {
             getSupportActionBar().setDisplayHomeAsUpEnabled(true);
             getSupportActionBar().setTitle("Personal Tools");
-            getSupportActionBar().setBackgroundDrawable(new android.graphics.drawable.ColorDrawable(0xFF2196F3));
         }
 
         recyclerView = findViewById(R.id.recyclerView);

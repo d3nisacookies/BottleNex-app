@@ -34,6 +34,14 @@ public class ToGoPlacesActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_to_go_places);
 
+        // Setup toolbar
+        com.google.android.material.appbar.MaterialToolbar toolbar = findViewById(R.id.toolbar_to_go);
+        setSupportActionBar(toolbar);
+        if (getSupportActionBar() != null) {
+            getSupportActionBar().setDisplayHomeAsUpEnabled(true);
+            getSupportActionBar().setTitle("Bookmark");
+        }
+
         searchView = findViewById(R.id.searchView);
         listView = findViewById(R.id.listView_places);
 
@@ -130,5 +138,11 @@ public class ToGoPlacesActivity extends AppCompatActivity {
         adapter.notifyDataSetChanged();
 
         Toast.makeText(this, "Place added", Toast.LENGTH_SHORT).show();
+    }
+
+    @Override
+    public boolean onSupportNavigateUp() {
+        onBackPressed();
+        return true;
     }
 }

@@ -19,18 +19,12 @@ public class Bookmark extends AppCompatActivity {
         setContentView(R.layout.activity_bookmark);
 
         Button btnStarred = findViewById(R.id.btnStarredPlaces);
-        Button btnSavedTrips = findViewById(R.id.btnSavedTrips);
         Button btnToGo = findViewById(R.id.btnToGoPlaces);
         Button btnFavorites = findViewById(R.id.btnFavourites);
 
         btnStarred.setOnClickListener(v -> {
             Intent intent = new Intent(Bookmark.this, StarredPlacesActivity.class);
             startActivityForResult(intent, REQUEST_CODE_STARRED);
-        });
-
-        btnSavedTrips.setOnClickListener(v -> {
-            Intent intent = new Intent(Bookmark.this, SavedTripsActivity.class);
-            startActivity(intent);
         });
 
         btnToGo.setOnClickListener(v -> {

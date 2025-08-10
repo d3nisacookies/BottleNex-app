@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.cardview.widget.CardView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_margin="8dp"
+    app:cardCornerRadius="12dp"
+    app:cardElevation="2dp"
+    app:cardBackgroundColor="@color/secondary_system_background">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:padding="16dp"
+        android:gravity="center_vertical">
+
+        <!-- Star Icon -->
+        <ImageView
+            android:layout_width="24dp"
+            android:layout_height="24dp"
+            android:src="@drawable/star"
+            android:layout_marginEnd="16dp"
+            android:contentDescription="Starred place" />
+
+        <!-- Place Name -->
+        <TextView
+            android:id="@+id/tvPlaceName"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:textAppearance="@style/TextAppearance.BottleNex.Headline6"
+            android:textColor="@color/black"
+            android:layout_marginEnd="16dp" />
+
+        <!-- Navigation Button -->
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnNavigate"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:insetLeft="0dp"
+            android:insetTop="0dp"
+            android:insetRight="0dp"
+            android:insetBottom="0dp"
+            android:backgroundTint="@color/blue_500"
+            android:text="→"
+            android:textSize="20sp"
+            android:textColor="@color/white"
+            app:cornerRadius="24dp"
+            android:layout_marginEnd="8dp"
+            android:contentDescription="Navigate to starred place" />
+
+        <!-- Delete Button -->
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnDelete"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:insetLeft="0dp"
+            android:insetTop="0dp"
+            android:insetRight="0dp"
+            android:insetBottom="0dp"
+            android:backgroundTint="@color/red"
+            android:text="×"
+            android:textSize="20sp"
+            android:textColor="@color/white"
+            app:cornerRadius="24dp"
+            android:contentDescription="Delete starred place" />
+
+    </LinearLayout>
+
+</androidx.cardview.widget.CardView>

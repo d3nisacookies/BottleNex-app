@@ -25,6 +25,14 @@ public class FavouritesActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_favourites);
 
+        // Setup toolbar
+        com.google.android.material.appbar.MaterialToolbar toolbar = findViewById(R.id.toolbar);
+        setSupportActionBar(toolbar);
+        if (getSupportActionBar() != null) {
+            getSupportActionBar().setDisplayHomeAsUpEnabled(true);
+            getSupportActionBar().setTitle("Bookmark");
+        }
+
         listViewFavourites = findViewById(R.id.listViewFavourites);
 
         loadFavourites();
@@ -72,5 +80,11 @@ public class FavouritesActivity extends AppCompatActivity {
         SharedPreferences prefs = getSharedPreferences("favourites", MODE_PRIVATE);
         Set<String> favouritesSet = prefs.getStringSet("favourites_list", new HashSet<>());
         favouritesList = new ArrayList<>(favouritesSet);
+    }
+
+    @Override
+    public boolean onSupportNavigateUp() {
+        onBackPressed();
+        return true;
     }
 }

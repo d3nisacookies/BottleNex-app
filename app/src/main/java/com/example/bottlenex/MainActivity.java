@@ -3,7 +3,9 @@ package com.example.bottlenex;
 //To commit
 
 import android.Manifest;
+import android.content.BroadcastReceiver;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.location.Address;
@@ -30,13 +32,14 @@ import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.auth.FirebaseAuth;
 import com.example.bottlenex.routing.RoutePlanner;
 import org.osmdroid.util.GeoPoint;
-import java.util.ArrayList;
 import org.osmdroid.views.overlay.Marker;
+import org.osmdroid.views.overlay.Overlay;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Calendar;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Locale;
 import java.util.Set;
 
@@ -61,6 +64,10 @@ import android.widget.ImageView;
 import android.widget.RadioButton;
 import android.widget.TimePicker;
 import androidx.appcompat.app.AlertDialog;
+import android.widget.ListView;
+import android.widget.ArrayAdapter;
+import android.os.Handler;
+import android.content.Context;
 
 
 
@@ -96,6 +103,9 @@ public class MainActivity extends AppCompatActivity implements
     private Location lastSpeedAlertLocation = null; // Track location for 100m alerts
     private RoutePlanner.RouteData currentRouteData = null;
     
+    // Store the address of the currently selected location (from search or map tap)
+    private String selectedLocationAddress = "";
+    
     // Route History tracking stuff
     private DatabaseHelper databaseHelper;
     private long journeyStartTime;
@@ -109,14 +119,29 @@ public class MainActivity extends AppCompatActivity implements
     // Search suggestions and autocomplete
     private List<Address> searchSuggestions = new ArrayList<>();
     private boolean isShowingSuggestions = false;
-    private android.os.Handler searchHandler = new android.os.Handler();
+    private Handler searchHandler = new Handler();
     private Runnable searchRunnable;
-    private android.widget.ListView suggestionListView;
-    private android.widget.ArrayAdapter<String> suggestionAdapter;
+    private ListView suggestionListView;
+    private ArrayAdapter<String> suggestionAdapter;
+
+    // Broadcast receiver for starred places updates
+    private BroadcastReceiver starredPlacesUpdateReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            if ("STARRED_PLACES_UPDATED".equals(intent.getAction())) {
+                Log.d("StarredPlaces", "Broadcast received: STARRED_PLACES_UPDATED");
+                // Refresh starred places on the map
+                refreshStarredPlacesOnMap();
+                
+                // Additional verification after broadcast
+                Log.d("StarredPlaces", "Broadcast processed, synchronization verified");
+            }
+        }
+    };
 
     // Traffic prediction variables
     private boolean showTrafficOverlay = false;
-    private android.os.Handler trafficUpdateHandler = new android.os.Handler();
+    private Handler trafficUpdateHandler = new Handler();
     private Runnable trafficUpdateRunnable;
     private Calendar selectedTrafficTime = null; // Store user-selected time for traffic prediction
 
@@ -127,11 +152,43 @@ public class MainActivity extends AppCompatActivity implements
         String entry = name + "|" + lat + "|" + lon;
         newStarred.add(entry);
         prefs.edit().putStringSet("starred_places_list", newStarred).apply();
+        
+        Log.d("StarredPlaces", "Saved to SharedPreferences: " + name + " at " + lat + ", " + lon);
+        
+        // Also add the marker to the map immediately
+        GeoPoint point = new GeoPoint(lat, lon);
+        Marker marker = new Marker(binding.mapView);
+        marker.setPosition(point);
+        marker.setTitle("Starred: " + name);
+        // Add a unique identifier for better tracking
+        marker.setSnippet("STARRED_PLACE_" + name.hashCode() + "_" + lat + "_" + lon);
+        Drawable icon = getResources().getDrawable(R.drawable.star);
+        marker.setIcon(icon);
+        
+        // Add click listener for navigation
+        addStarredMarkerClickListener(marker, name, lat, lon);
+        
+        binding.mapView.getOverlays().add(marker);
+        
+        if (binding.mapView != null) {
+            binding.mapView.invalidate();
+            Log.d("StarredPlaces", "Immediately added marker for: " + name + " at " + lat + ", " + lon + " (snippet: " + marker.getSnippet() + ")");
+        } else {
+            Log.w("StarredPlaces", "MapView is null, cannot add marker");
+        }
     }
 
     private void loadStarredPlaces() {
         SharedPreferences prefs = getSharedPreferences("starred_places", MODE_PRIVATE);
         Set<String> starred = prefs.getStringSet("starred_places_list", new HashSet<>());
+        
+        Log.d("StarredPlaces", "Loading " + starred.size() + " starred places");
+        
+        if (starred.isEmpty()) {
+            Log.d("StarredPlaces", "No starred places to load");
+            return;
+        }
+        
         for (String entry : starred) {
             String[] parts = entry.split("\\|");
             if (parts.length == 3) {
@@ -142,13 +199,251 @@ public class MainActivity extends AppCompatActivity implements
                 GeoPoint point = new GeoPoint(lat, lon);
                 Marker marker = new Marker(binding.mapView);
                 marker.setPosition(point);
-                marker.setTitle("⭐ Starred: " + name);
+                marker.setTitle("Starred: " + name);
+                // Add a unique identifier for better tracking
+                marker.setSnippet("STARRED_PLACE_" + name.hashCode() + "_" + lat + "_" + lon);
                 Drawable icon = getResources().getDrawable(R.drawable.star);
                 marker.setIcon(icon);
+                
+                // Add click listener for navigation
+                addStarredMarkerClickListener(marker, name, lat, lon);
+                
                 binding.mapView.getOverlays().add(marker);
+                
+                Log.d("StarredPlaces", "Added marker for: " + name + " at " + lat + ", " + lon + " (snippet: " + marker.getSnippet() + ")");
+            } else {
+                Log.w("StarredPlaces", "Invalid starred place entry format: " + entry);
             }
         }
+        
+        if (binding.mapView != null) {
+            binding.mapView.invalidate();
+            Log.d("StarredPlaces", "Map invalidated after loading " + starred.size() + " starred places");
+        } else {
+            Log.w("StarredPlaces", "MapView is null, cannot invalidate");
+        }
+    }
+
+    private void refreshStarredPlacesOnMap() {
+        Log.d("StarredPlaces", "Refreshing starred places on map");
+        
+        // Clear existing star markers
+        clearStarredMarkers();
+        
+        // Reload starred places
+        loadStarredPlaces();
+        
+        // Force map refresh to ensure changes are visible
+        if (binding.mapView != null) {
+            binding.mapView.invalidate();
+            binding.mapView.postInvalidate();
+        }
+        
+        Log.d("StarredPlaces", "Finished refreshing starred places on map");
+        
+        // Verify synchronization after refresh
+        verifyStarredPlacesSynchronization();
+    }
+
+    private void clearStarredMarkers() {
+        // Remove all star markers from the map
+        List<Overlay> overlays = binding.mapView.getOverlays();
+        List<Overlay> overlaysToRemove = new ArrayList<>();
+        
+        Log.d("StarredPlaces", "Clearing starred markers. Total overlays: " + overlays.size());
+        
+        for (Overlay overlay : overlays) {
+            if (overlay instanceof Marker) {
+                Marker marker = (Marker) overlay;
+                // Check both title and snippet for starred markers with more robust identification
+                boolean isStarredMarker = false;
+                
+                if (marker.getTitle() != null && marker.getTitle().startsWith("Starred:")) {
+                    isStarredMarker = true;
+                } else if (marker.getSnippet() != null && marker.getSnippet().startsWith("STARRED_PLACE_")) {
+                    isStarredMarker = true;
+                } else if (marker.getIcon() != null) {
+                    // Additional check: verify if the marker has a star icon
+                    try {
+                        Drawable icon = marker.getIcon();
+                        if (icon != null && icon.getConstantState() != null) {
+                            Drawable starIcon = getResources().getDrawable(R.drawable.star);
+                            if (starIcon != null && starIcon.getConstantState() != null) {
+                                isStarredMarker = icon.getConstantState().equals(starIcon.getConstantState());
+                            }
+                        }
+                    } catch (Exception e) {
+                        Log.w("StarredPlaces", "Error checking marker icon: " + e.getMessage());
+                    }
+                }
+                
+                if (isStarredMarker) {
+                    overlaysToRemove.add(overlay);
+                    Log.d("StarredPlaces", "Found starred marker to remove: " + marker.getTitle() + " (snippet: " + marker.getSnippet() + ")");
+                }
+            }
+        }
+        
+        Log.d("StarredPlaces", "Removing " + overlaysToRemove.size() + " starred markers");
+        overlays.removeAll(overlaysToRemove);
         binding.mapView.invalidate();
+        Log.d("StarredPlaces", "Starred markers cleared, map invalidated");
+    }
+
+    /**
+     * Debug method to verify synchronization between SharedPreferences and map markers
+     */
+    private void verifyStarredPlacesSynchronization() {
+        SharedPreferences prefs = getSharedPreferences("starred_places", MODE_PRIVATE);
+        Set<String> starredSet = prefs.getStringSet("starred_places_list", new HashSet<>());
+        
+        Log.d("StarredPlaces", "=== SYNCHRONIZATION VERIFICATION ===");
+        Log.d("StarredPlaces", "SharedPreferences contains " + starredSet.size() + " starred places");
+        
+        // Get detailed information about starred markers on the map
+        List<String> starredOnMap = getStarredPlacesOnMap();
+        int starredMarkersOnMap = starredOnMap.size();
+        
+        Log.d("StarredPlaces", "Map contains " + starredMarkersOnMap + " starred markers:");
+        for (String markerInfo : starredOnMap) {
+            Log.d("StarredPlaces", "  - " + markerInfo);
+        }
+        
+        // Log SharedPreferences content for comparison
+        Log.d("StarredPlaces", "SharedPreferences content:");
+        for (String entry : starredSet) {
+            Log.d("StarredPlaces", "  - " + entry);
+        }
+        
+        boolean isSynced = starredSet.size() == starredMarkersOnMap;
+        Log.d("StarredPlaces", "Synchronization status: " + (isSynced ? "SYNCED" : "NOT SYNCED"));
+        
+        if (!isSynced) {
+            Log.w("StarredPlaces", "SYNCHRONIZATION ISSUE DETECTED!");
+            Log.w("StarredPlaces", "Difference: " + Math.abs(starredSet.size() - starredMarkersOnMap) + " items");
+        }
+        
+        Log.d("StarredPlaces", "=== END VERIFICATION ===");
+    }
+
+    /**
+     * Remove a specific starred place marker from the map by its identifier
+     * This method provides more precise control over marker removal
+     */
+    private void removeSpecificStarredMarker(String name, double lat, double lon) {
+        if (binding.mapView == null) {
+            Log.w("StarredPlaces", "MapView is null, cannot remove marker");
+            return;
+        }
+        
+        List<Overlay> overlays = binding.mapView.getOverlays();
+        String expectedSnippet = "STARRED_PLACE_" + name.hashCode() + "_" + lat + "_" + lon;
+        
+        Log.d("StarredPlaces", "Attempting to remove specific marker with snippet: " + expectedSnippet);
+        
+        for (int i = overlays.size() - 1; i >= 0; i--) {
+            Overlay overlay = overlays.get(i);
+            if (overlay instanceof Marker) {
+                Marker marker = (Marker) overlay;
+                if (expectedSnippet.equals(marker.getSnippet())) {
+                    overlays.remove(i);
+                    Log.d("StarredPlaces", "Removed specific starred marker: " + marker.getTitle());
+                    break;
+                }
+            }
+        }
+        
+        binding.mapView.invalidate();
+    }
+
+    /**
+     * Check if a specific starred place exists on the map
+     * This method is useful for debugging synchronization issues
+     */
+    private boolean isStarredPlaceOnMap(String name, double lat, double lon) {
+        if (binding.mapView == null) {
+            return false;
+        }
+        
+        List<Overlay> overlays = binding.mapView.getOverlays();
+        String expectedSnippet = "STARRED_PLACE_" + name.hashCode() + "_" + lat + "_" + lon;
+        
+        for (Overlay overlay : overlays) {
+            if (overlay instanceof Marker) {
+                Marker marker = (Marker) overlay;
+                if (expectedSnippet.equals(marker.getSnippet())) {
+                    return true;
+                }
+            }
+        }
+        
+        return false;
+    }
+
+    /**
+     * Get all starred places currently displayed on the map
+     * This method returns a list of marker information for debugging
+     */
+    private List<String> getStarredPlacesOnMap() {
+        List<String> starredOnMap = new ArrayList<>();
+        
+        if (binding.mapView == null) {
+            return starredOnMap;
+        }
+        
+        List<Overlay> overlays = binding.mapView.getOverlays();
+        for (Overlay overlay : overlays) {
+            if (overlay instanceof Marker) {
+                Marker marker = (Marker) overlay;
+                                        if (marker.getTitle() != null && marker.getTitle().startsWith("Starred:")) {
+                            String info = marker.getTitle() + " (snippet: " + marker.getSnippet() + ")";
+                            starredOnMap.add(info);
+                        }
+            }
+        }
+        
+        return starredOnMap;
+    }
+
+    /**
+     * Force synchronization between SharedPreferences and map markers
+     * This method can be called manually if synchronization issues are detected
+     */
+    private void forceSynchronization() {
+        Log.d("StarredPlaces", "Force synchronization requested");
+        
+        // First verify current state
+        verifyStarredPlacesSynchronization();
+        
+        // Force refresh
+        refreshStarredPlacesOnMap();
+        
+        // Verify again after refresh
+        verifyStarredPlacesSynchronization();
+        
+        Log.d("StarredPlaces", "Force synchronization completed");
+    }
+
+    /**
+     * Add click listener to starred place markers for navigation
+     */
+    private void addStarredMarkerClickListener(Marker marker, String name, double lat, double lon) {
+        marker.setOnMarkerClickListener((marker1, mapView) -> {
+            // Set the selected location to this starred place
+            selectedLocation = new GeoPoint(lat, lon);
+            selectedLocationAddress = name;
+            
+            // Update location info
+            binding.locationInfo.setText(String.format("Starred Place: %s\nLat: %.6f, Lon: %.6f", name, lat, lon));
+            
+            // Enable navigate button
+            binding.btnNavigate.setEnabled(true);
+            
+            // Show a toast to indicate the place is selected
+            Toast.makeText(MainActivity.this, "Selected: " + name, Toast.LENGTH_SHORT).show();
+            
+            return true; // Return true to consume the event
+        });
     }
 
 
@@ -206,19 +501,21 @@ public class MainActivity extends AppCompatActivity implements
         } else {
             requestPermissions();
         }
+
+        // Register broadcast receiver for starred places updates
+        IntentFilter filter = new IntentFilter("STARRED_PLACES_UPDATED");
+        registerReceiver(starredPlacesUpdateReceiver, filter, Context.RECEIVER_NOT_EXPORTED);
     }
 
     // Add missing method stubs
     private void initializeFirebaseAuth() {
         currentUser = firebaseService.getCurrentUser();
+        // Remove anonymous sign-in logic - this should only check current user
+        // If no user exists, the onCreate method will redirect to LoginActivity
         if (currentUser == null) {
-            firebaseService.signInAnonymously(task -> {
-                if (task.isSuccessful()) {
-                    currentUser = task.getResult().getUser();
-                } else {
-                    Toast.makeText(this, "Failed to initialize user", Toast.LENGTH_SHORT).show();
-                }
-            });
+            Log.d("FirebaseAuth", "No authenticated user found");
+        } else {
+            Log.d("FirebaseAuth", "User authenticated: " + currentUser.getUid());
         }
     }
 
@@ -246,6 +543,8 @@ public class MainActivity extends AppCompatActivity implements
                         Toast.makeText(MainActivity.this, "Please enter a location to search", Toast.LENGTH_SHORT).show();
                         return false;
                     }
+                    // Clear previous selected location when starting new search
+                    selectedLocationAddress = "";
                     // Hide suggestions when submitting
                     hideSearchSuggestions();
                     performSearch(query.trim());
@@ -329,38 +628,74 @@ public class MainActivity extends AppCompatActivity implements
         });
 
         binding.btnStarred.setOnClickListener(v -> {
-            String query = binding.searchView.getQuery().toString();
-            if (query.isEmpty()) {
-                Toast.makeText(this, "Search something before starring!", Toast.LENGTH_SHORT).show();
+            // Check if we have a location selected (either from search or map tap)
+            if (selectedLocation != null && !selectedLocationAddress.isEmpty()) {
+                // We have a location selected, star it
+                double lat = selectedLocation.getLatitude();
+                double lon = selectedLocation.getLongitude();
+                
+                // Add star marker to map
+                Marker marker = new Marker(binding.mapView);
+                marker.setPosition(selectedLocation);
+                marker.setTitle("Starred: " + selectedLocationAddress);
+                Drawable icon = getResources().getDrawable(R.drawable.star);
+                marker.setIcon(icon);
+                
+                // Add click listener for navigation
+                addStarredMarkerClickListener(marker, selectedLocationAddress, selectedLocation.getLatitude(), selectedLocation.getLongitude());
+                
+                binding.mapView.getOverlays().add(marker);
+                binding.mapView.invalidate();
+
+                // Save to starred places
+                saveStarred(selectedLocationAddress, lat, lon);
+
+                Toast.makeText(this, "Starred place saved!", Toast.LENGTH_SHORT).show();
+                
+                // Verify synchronization after adding new starred place
+                verifyStarredPlacesSynchronization();
             } else {
-                Geocoder geocoder = new Geocoder(MainActivity.this, Locale.getDefault());
-                try {
-                    List<Address> addresses = geocoder.getFromLocationName(query, 1);
-                    if (addresses != null && !addresses.isEmpty()) {
-                        Address address = addresses.get(0);
-                        double lat = address.getLatitude();
-                        double lon = address.getLongitude();
+                // No location selected, check if there's a search query
+                String query = binding.searchView.getQuery().toString();
+                if (query.isEmpty()) {
+                    Toast.makeText(this, "Search for a location or tap on the map first!", Toast.LENGTH_SHORT).show();
+                } else {
+                    // Fallback to old behavior for search queries
+                    Geocoder geocoder = new Geocoder(MainActivity.this, Locale.getDefault());
+                    try {
+                        List<Address> addresses = geocoder.getFromLocationName(query, 1);
+                        if (addresses != null && !addresses.isEmpty()) {
+                            Address address = addresses.get(0);
+                            double lat = address.getLatitude();
+                            double lon = address.getLongitude();
 
-                        GeoPoint point = new GeoPoint(lat, lon);
+                            GeoPoint point = new GeoPoint(lat, lon);
 
-                        Marker marker = new Marker(binding.mapView);
-                        marker.setPosition(point);
-                        marker.setTitle("⭐ Starred: " + query);
-                        Drawable icon = getResources().getDrawable(R.drawable.star); // your star icon
+                            Marker marker = new Marker(binding.mapView);
+                            marker.setPosition(point);
+                            marker.setTitle("Starred: " + query);
+                            Drawable icon = getResources().getDrawable(R.drawable.star);
+                            marker.setIcon(icon);
+                            
+                            // Add click listener for navigation
+                            addStarredMarkerClickListener(marker, query, lat, lon);
+                            
+                            binding.mapView.getOverlays().add(marker);
+                            binding.mapView.invalidate();
 
-                        marker.setIcon(icon);
-                        binding.mapView.getOverlays().add(marker);
-                        binding.mapView.invalidate();
+                            saveStarred(query, lat, lon);
 
-                        saveStarred(query, lat, lon);
-
-                        Toast.makeText(this, "Starred place saved!", Toast.LENGTH_SHORT).show();
-                    } else {
-                        Toast.makeText(this, "Location not found", Toast.LENGTH_SHORT).show();
+                            Toast.makeText(this, "Starred place saved!", Toast.LENGTH_SHORT).show();
+                            
+                            // Verify synchronization after adding new starred place
+                            verifyStarredPlacesSynchronization();
+                        } else {
+                            Toast.makeText(this, "Location not found", Toast.LENGTH_SHORT).show();
+                        }
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                        Toast.makeText(this, "Geocoding failed!", Toast.LENGTH_SHORT).show();
                     }
-                } catch (IOException e) {
-                    e.printStackTrace();
-                    Toast.makeText(this, "Geocoding failed!", Toast.LENGTH_SHORT).show();
                 }
             }
         });
@@ -569,6 +904,7 @@ public class MainActivity extends AppCompatActivity implements
 
         // Update selected location and UI
         selectedLocation = point;
+        selectedLocationAddress = displayName; // Store the address for starring
         binding.locationInfo.setText(displayName + " • Tap Navigate to start route");
         
         // Enable navigate button when a location is found
@@ -840,10 +1176,35 @@ public class MainActivity extends AppCompatActivity implements
     private void onNavigateClicked() {
         Location currentLocation = mapManager.getLastKnownLocation();
         if (currentLocation == null) {
-            Toast.makeText(this, "Current location not available", Toast.LENGTH_SHORT).show();
+            // Check if location services are enabled
+            if (!mapManager.isLocationServicesEnabled()) {
+                Toast.makeText(this, "Location services are disabled. Please enable GPS and try again.", Toast.LENGTH_LONG).show();
+                return;
+            }
+            
+            // Try to start location updates and show more helpful message
+            mapManager.startLocationUpdates();
+            
+            // Wait a bit and try again automatically
+            new Handler().postDelayed(() -> {
+                Location retryLocation = mapManager.getLastKnownLocation();
+                if (retryLocation != null) {
+                    // Location is now available, proceed with navigation
+                    proceedWithNavigation(retryLocation);
+                } else {
+                    Toast.makeText(MainActivity.this, "Still getting location. Please try again in a few seconds.", Toast.LENGTH_SHORT).show();
+                }
+            }, 3000); // Wait 3 seconds
+            
+            Toast.makeText(this, "Getting your current location... Please wait a moment.", Toast.LENGTH_SHORT).show();
             return;
         }
-
+        
+        // Proceed with navigation using the available location
+        proceedWithNavigation(currentLocation);
+    }
+    
+    private void proceedWithNavigation(Location currentLocation) {
         GeoPoint start = new GeoPoint(currentLocation.getLatitude(), currentLocation.getLongitude());
         GeoPoint end = selectedLocation;
 
@@ -1116,14 +1477,17 @@ public class MainActivity extends AppCompatActivity implements
             if (addresses != null && !addresses.isEmpty()) {
                 Address address = addresses.get(0);
                 String locationName = getReadableAddress(address);
+                selectedLocationAddress = locationName; // Store the address for starring
                 binding.locationInfo.setText(locationName + " • Tap Navigate to start route");
             } else {
                 // Fallback if geocoding fails
+                selectedLocationAddress = "Selected Location";
                 binding.locationInfo.setText("Location Selected • Tap Navigate to start route");
             }
         } catch (IOException e) {
             e.printStackTrace();
             // Fallback if geocoding fails
+            selectedLocationAddress = "Selected Location";
             binding.locationInfo.setText("Location Selected • Tap Navigate to start route");
         }
     }
@@ -1193,6 +1557,7 @@ public class MainActivity extends AppCompatActivity implements
         
         // Reset the selected location
         selectedLocation = null;
+        selectedLocationAddress = ""; // Clear the stored address
         currentRouteData = null;
         
         // Clear stored traffic analysis info
@@ -1225,6 +1590,9 @@ public class MainActivity extends AppCompatActivity implements
         
         // Restore navigation state if we were navigating
         preserveNavigationState();
+        
+        // Verify starred places synchronization when resuming
+        verifyStarredPlacesSynchronization();
     }
 
     @Override
@@ -1241,6 +1609,17 @@ public class MainActivity extends AppCompatActivity implements
         // Clean up search handler
         if (searchHandler != null && searchRunnable != null) {
             searchHandler.removeCallbacks(searchRunnable);
+        }
+
+        if (trafficUpdateHandler != null) {
+            trafficUpdateHandler.removeCallbacks(trafficUpdateRunnable);
+        }
+        
+        // Unregister broadcast receiver
+        try {
+            unregisterReceiver(starredPlacesUpdateReceiver);
+        } catch (Exception e) {
+            // Receiver might not be registered
         }
     }
 
@@ -1720,40 +2099,160 @@ public class MainActivity extends AppCompatActivity implements
         super.onActivityResult(requestCode, resultCode, data);
 
         if (requestCode == REQUEST_CODE_BOOKMARK && resultCode == RESULT_OK && data != null) {
-            String name = data.getStringExtra("starred_name");
-            double lat = data.getDoubleExtra("starred_lat", 0);
-            double lon = data.getDoubleExtra("starred_lon", 0);
-
-            if (name != null && lat != 0 && lon != 0) {
-                GeoPoint point = new GeoPoint(lat, lon);
-
-                binding.mapView.getController().setZoom(15.0);
-                binding.mapView.getController().setCenter(point);
-
-                // Clear only markers, not the location overlay
-                mapManager.clearMarkers();
-                loadStarredPlaces();
-
-                Marker marker = new Marker(binding.mapView);
-                marker.setPosition(point);
-                marker.setTitle("⭐ Starred: " + name);
-                Drawable icon = getResources().getDrawable(R.drawable.star);
-                marker.setIcon(icon);
-                binding.mapView.getOverlays().add(marker);
-
-                binding.mapView.invalidate();
-
-                binding.locationInfo.setText(String.format("Starred Place: %s\nLat: %.6f, Lon: %.6f", name, lat, lon));
+            String action = data.getStringExtra("action");
+            
+            if ("deleted".equals(action)) {
+                // Handle individual deletion - refresh map immediately
+                String deletedEntry = data.getStringExtra("deleted_entry");
+                if (deletedEntry != null) {
+                    Log.d("StarredPlaces", "Received deletion result for: " + deletedEntry);
+                    // Parse the deleted entry and remove specific marker
+                    String[] parts = deletedEntry.split("\\|");
+                    if (parts.length == 3) {
+                        String name = parts[0];
+                        double lat = Double.parseDouble(parts[1]);
+                        double lon = Double.parseDouble(parts[2]);
+                        removeSpecificStarredMarker(name, lat, lon);
+                        Log.d("StarredPlaces", "Immediately removed marker for: " + name);
+                    }
+                }
+                // Also refresh the entire map to ensure synchronization
+                refreshStarredPlacesOnMap();
+                // Verify synchronization after immediate deletion
+                verifyStarredPlacesSynchronization();
                 
-                // Enable navigate button when a starred place is selected
-                binding.btnNavigate.setEnabled(true);
+            } else if ("deleted_all".equals(action)) {
+                // Handle bulk deletion - clear all starred markers immediately
+                Log.d("StarredPlaces", "Received bulk deletion result");
+                clearStarredMarkers();
+                if (binding.mapView != null) {
+                    binding.mapView.invalidate();
+                }
+                Log.d("StarredPlaces", "Immediately cleared all starred markers");
+                // Verify synchronization after bulk deletion
+                verifyStarredPlacesSynchronization();
+                
+            } else if ("selected".equals(action)) {
+                // Handle selection of a starred place
+                String name = data.getStringExtra("starred_name");
+                double lat = data.getDoubleExtra("starred_lat", 0);
+                double lon = data.getDoubleExtra("starred_lon", 0);
 
-                selectedLocation = point;
+                if (name != null && lat != 0 && lon != 0) {
+                    GeoPoint point = new GeoPoint(lat, lon);
 
+                    binding.mapView.getController().setZoom(15.0);
+                    binding.mapView.getController().setCenter(point);
+
+                    // Clear only markers, not the location overlay
+                    mapManager.clearMarkers();
+                    loadStarredPlaces();
+
+                    Marker marker = new Marker(binding.mapView);
+                    marker.setPosition(point);
+                    marker.setTitle("Starred: " + name);
+                    Drawable icon = getResources().getDrawable(R.drawable.star);
+                    marker.setIcon(icon);
+                    
+                    // Add click listener for navigation
+                    addStarredMarkerClickListener(marker, name, lat, lon);
+                    
+                    binding.mapView.getOverlays().add(marker);
+
+                    binding.mapView.invalidate();
+
+                    binding.locationInfo.setText(String.format("Starred Place: %s\nLat: %.6f, Lon: %.6f", name, lat, lon));
+                    
+                    // Enable navigate button when a starred place is selected
+                    binding.btnNavigate.setEnabled(true);
+
+                    selectedLocation = point;
+                }
+            } else if ("navigate".equals(action)) {
+                // Handle navigation to a starred place
+                String name = data.getStringExtra("starred_name");
+                double lat = data.getDoubleExtra("starred_lat", 0);
+                double lon = data.getDoubleExtra("starred_lon", 0);
+
+                if (name != null && lat != 0 && lon != 0) {
+                    GeoPoint point = new GeoPoint(lat, lon);
+                    
+                    // Set the selected location to the starred place
+                    selectedLocation = point;
+                    selectedLocationAddress = name;
+                    
+                    // Center the map on the starred place
+                    binding.mapView.getController().setZoom(15.0);
+                    binding.mapView.getController().setCenter(point);
+                    
+                    // Clear existing markers and load starred places
+                    mapManager.clearMarkers();
+                    loadStarredPlaces();
+                    
+                    // Add a marker for the starred place
+                    Marker marker = new Marker(binding.mapView);
+                    marker.setPosition(point);
+                    marker.setTitle("Starred: " + name);
+                    Drawable icon = getResources().getDrawable(R.drawable.star);
+                    marker.setIcon(icon);
+                    
+                    // Add click listener for navigation
+                    addStarredMarkerClickListener(marker, name, lat, lon);
+                    
+                    binding.mapView.getOverlays().add(marker);
+                    
+                    binding.mapView.invalidate();
+                    
+                    // Update location info
+                    binding.locationInfo.setText(String.format("Starred Place: %s\nLat: %.6f, Lon: %.6f", name, lat, lon));
+                    
+                    // Enable navigate button
+                    binding.btnNavigate.setEnabled(true);
+                    
+                    // Automatically start navigation
+                    onNavigateClicked();
+                }
             } else {
-                String placeName = data.getStringExtra("selected_location");
-                if (placeName != null && !placeName.isEmpty()) {
-                    performSearch(placeName);
+                // Fallback for backward compatibility
+                String name = data.getStringExtra("starred_name");
+                double lat = data.getDoubleExtra("starred_lat", 0);
+                double lon = data.getDoubleExtra("starred_lon", 0);
+
+                if (name != null && lat != 0 && lon != 0) {
+                    GeoPoint point = new GeoPoint(lat, lon);
+
+                    binding.mapView.getController().setZoom(15.0);
+                    binding.mapView.getController().setCenter(point);
+
+                    // Clear only markers, not the location overlay
+                    mapManager.clearMarkers();
+                    loadStarredPlaces();
+
+                    Marker marker = new Marker(binding.mapView);
+                    marker.setPosition(point);
+                    marker.setTitle("Starred: " + name);
+                    Drawable icon = getResources().getDrawable(R.drawable.star);
+                    marker.setIcon(icon);
+                    
+                    // Add click listener for navigation
+                    addStarredMarkerClickListener(marker, name, lat, lon);
+                    
+                    binding.mapView.getOverlays().add(marker);
+
+                    binding.mapView.invalidate();
+
+                    binding.locationInfo.setText(String.format("Starred Place: %s\nLat: %.6f, Lon: %.6f", name, lat, lon));
+                    
+                    // Enable navigate button when a starred place is selected
+                    binding.btnNavigate.setEnabled(true);
+
+                    selectedLocation = point;
+
+                } else {
+                    String placeName = data.getStringExtra("selected_location");
+                    if (placeName != null && !placeName.isEmpty()) {
+                        performSearch(placeName);
+                    }
                 }
             }
         }

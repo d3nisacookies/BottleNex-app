@@ -61,7 +61,6 @@
 
         <activity android:name=".Bookmark" />
         <activity android:name=".StarredPlacesActivity" />
-        <activity android:name=".SavedTripsActivity" />
         <activity android:name=".ToGoPlacesActivity" />
         <activity android:name=".FavouritesActivity" />
 

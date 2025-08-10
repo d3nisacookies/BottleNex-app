@@ -378,8 +378,36 @@ public class MapManager {
         void onLocationUpdate(Location location);
     }
     public Location getLastKnownLocation() {
-        Log.d("DEBUG_LOCATION", "Returning last known location: " + lastKnownLocation);
-        return lastKnownLocation;
+        // First try to get from our stored location
+        if (lastKnownLocation != null) {
+            Log.d("DEBUG_LOCATION", "Returning stored last known location: " + lastKnownLocation);
+            return lastKnownLocation;
+        }
+        
+        // Fallback: try to get from MyLocationNewOverlay if available
+        if (myLocationOverlay != null && myLocationOverlay.getMyLocation() != null) {
+            GeoPoint geoPoint = myLocationOverlay.getMyLocation();
+            Location overlayLocation = new Location("MyLocationOverlay");
+            overlayLocation.setLatitude(geoPoint.getLatitude());
+            overlayLocation.setLongitude(geoPoint.getLongitude());
+            overlayLocation.setTime(System.currentTimeMillis());
+            Log.d("DEBUG_LOCATION", "Fallback: returning location from overlay: " + overlayLocation);
+            return overlayLocation;
+        }
+        
+        Log.d("DEBUG_LOCATION", "No location available from any source");
+        return null;
+    }
+    
+    public boolean isLocationAvailable() {
+        return getLastKnownLocation() != null;
+    }
+    
+    public boolean isLocationServicesEnabled() {
+        if (myLocationOverlay != null) {
+            return myLocationOverlay.isMyLocationEnabled();
+        }
+        return false;
     }
 
     public void drawRoute(List<GeoPoint> points) {

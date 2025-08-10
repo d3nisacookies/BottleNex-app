@@ -2,19 +2,34 @@
 <androidx.constraintlayout.widget.ConstraintLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@color/system_background">
 
+    <!-- Toolbar -->
     <com.google.android.material.appbar.MaterialToolbar
         android:id="@+id/toolbar_to_go"
         android:layout_width="0dp"
-        android:layout_height="?attr/actionBarSize"
-        android:background="@color/system_background"
-        android:title="To Go Places"
-        android:titleTextColor="@color/black"
-        app:titleTextAppearance="@style/TextAppearance.BottleNex.Headline6"
+        android:layout_height="wrap_content"
+        android:background="@android:color/transparent"
+        app:title="Bookmark"
+        android:textColor="@color/black"
+        app:navigationIcon="@android:drawable/ic_menu_revert"
         app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
+
+    <!-- Page Title -->
+    <TextView
+        android:id="@+id/pageTitle"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="To Go Places"
+        android:textAppearance="@style/TextAppearance.BottleNex.Headline2"
+        android:textColor="@color/black"
+        android:layout_marginTop="16dp"
+        app:layout_constraintTop_toBottomOf="@id/toolbar_to_go"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent" />
 
@@ -28,7 +43,7 @@
         android:layout_marginTop="12dp"
         android:background="@drawable/search_background"
         android:elevation="1dp"
-        app:layout_constraintTop_toBottomOf="@id/toolbar_to_go"
+        app:layout_constraintTop_toBottomOf="@id/pageTitle"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         android:paddingStart="16dp"
