@@ -52,12 +52,10 @@ public class Bookmark extends AppCompatActivity {
                 finish();
 
             } else if (requestCode == REQUEST_CODE_FAVOURITES) {
-                String selectedLocation = data.getStringExtra("selected_location");
-                if (selectedLocation != null) {
-                    resultIntent.putExtra("selected_location", selectedLocation);
-                    setResult(RESULT_OK, resultIntent);
-                    finish();
-                }
+                // Pass all extras from FavouritesActivity back to MainActivity
+                resultIntent.putExtras(data.getExtras());
+                setResult(RESULT_OK, resultIntent);
+                finish();
 
             } else if (requestCode == REQUEST_CODE_TOGO) {
                 String selectedPlaceName = data.getStringExtra("selected_place_name");

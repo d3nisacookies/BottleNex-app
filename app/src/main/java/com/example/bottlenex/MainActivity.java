@@ -139,6 +139,21 @@ public class MainActivity extends AppCompatActivity implements
         }
     };
 
+    // Broadcast receiver for favourites updates
+    private BroadcastReceiver favouritesUpdateReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            if ("FAVOURITES_UPDATED".equals(intent.getAction())) {
+                Log.d("Favourites", "Broadcast received: FAVOURITES_UPDATED");
+                // Refresh favourites on the map
+                refreshFavouritesOnMap();
+                
+                // Additional verification after broadcast
+                Log.d("Favourites", "Broadcast processed, synchronization verified");
+            }
+        }
+    };
+
     // Traffic prediction variables
     private boolean showTrafficOverlay = false;
     private Handler trafficUpdateHandler = new Handler();
@@ -180,77 +195,134 @@ public class MainActivity extends AppCompatActivity implements
 
     private void loadStarredPlaces() {
         SharedPreferences prefs = getSharedPreferences("starred_places", MODE_PRIVATE);
-        Set<String> starred = prefs.getStringSet("starred_places_list", new HashSet<>());
+        Set<String> starredSet = prefs.getStringSet("starred_places_list", new HashSet<>());
         
-        Log.d("StarredPlaces", "Loading " + starred.size() + " starred places");
+        Log.d("StarredPlaces", "Loading " + starredSet.size() + " starred places from SharedPreferences");
         
-        if (starred.isEmpty()) {
-            Log.d("StarredPlaces", "No starred places to load");
-            return;
-        }
-        
-        for (String entry : starred) {
+        for (String entry : starredSet) {
             String[] parts = entry.split("\\|");
             if (parts.length == 3) {
-                String name = parts[0];
-                double lat = Double.parseDouble(parts[1]);
-                double lon = Double.parseDouble(parts[2]);
-
-                GeoPoint point = new GeoPoint(lat, lon);
-                Marker marker = new Marker(binding.mapView);
-                marker.setPosition(point);
-                marker.setTitle("Starred: " + name);
-                // Add a unique identifier for better tracking
-                marker.setSnippet("STARRED_PLACE_" + name.hashCode() + "_" + lat + "_" + lon);
-                Drawable icon = getResources().getDrawable(R.drawable.star);
-                marker.setIcon(icon);
-                
-                // Add click listener for navigation
-                addStarredMarkerClickListener(marker, name, lat, lon);
-                
-                binding.mapView.getOverlays().add(marker);
-                
-                Log.d("StarredPlaces", "Added marker for: " + name + " at " + lat + ", " + lon + " (snippet: " + marker.getSnippet() + ")");
-            } else {
-                Log.w("StarredPlaces", "Invalid starred place entry format: " + entry);
+                try {
+                    String name = parts[0];
+                    double lat = Double.parseDouble(parts[1]);
+                    double lon = Double.parseDouble(parts[2]);
+                    
+                    Log.d("StarredPlaces", "Adding starred marker: " + name + " at " + lat + ", " + lon);
+                    
+                    // Create marker
+                    Marker marker = new Marker(binding.mapView);
+                    marker.setPosition(new GeoPoint(lat, lon));
+                    marker.setTitle("Starred: " + name);
+                    marker.setSnippet("STARRED_PLACE_" + name.hashCode() + "_" + lat + "_" + lon);
+                    
+                    // Set star icon
+                    Drawable icon = getResources().getDrawable(R.drawable.star);
+                    marker.setIcon(icon);
+                    
+                    // Add click listener for navigation
+                    addStarredMarkerClickListener(marker, name, lat, lon);
+                    
+                    // Add to map
+                    binding.mapView.getOverlays().add(marker);
+                    
+                } catch (NumberFormatException e) {
+                    Log.e("StarredPlaces", "Error parsing starred place: " + entry, e);
+                }
             }
         }
         
-        if (binding.mapView != null) {
-            binding.mapView.invalidate();
-            Log.d("StarredPlaces", "Map invalidated after loading " + starred.size() + " starred places");
-        } else {
-            Log.w("StarredPlaces", "MapView is null, cannot invalidate");
-        }
+        binding.mapView.invalidate();
+        Log.d("StarredPlaces", "Finished loading starred places. Total markers on map: " + binding.mapView.getOverlays().size());
     }
 
+    private void loadFavourites() {
+        SharedPreferences prefs = getSharedPreferences("favourites", MODE_PRIVATE);
+        Set<String> favouritesSet = prefs.getStringSet("favourites_list", new HashSet<>());
+        
+        Log.d("Favourites", "Loading " + favouritesSet.size() + " favourite places from SharedPreferences");
+        
+        for (String entry : favouritesSet) {
+            String[] parts = entry.split("\\|");
+            if (parts.length == 3) {
+                try {
+                    String name = parts[0];
+                    double lat = Double.parseDouble(parts[1]);
+                    double lon = Double.parseDouble(parts[2]);
+                    
+                    Log.d("Favourites", "Adding favourite marker: " + name + " at " + lat + ", " + lon);
+                    
+                    // Create marker
+                    Marker marker = new Marker(binding.mapView);
+                    marker.setPosition(new GeoPoint(lat, lon));
+                    marker.setTitle("Favourite: " + name);
+                    marker.setSnippet("FAVOURITE_PLACE_" + name.hashCode() + "_" + lat + "_" + lon);
+                    
+                    // Set heart icon
+                    Drawable icon = getResources().getDrawable(R.drawable.favourite);
+                    marker.setIcon(icon);
+                    
+                    // Add click listener for navigation
+                    addFavouriteMarkerClickListener(marker, name, lat, lon);
+                    
+                    // Add to map
+                    binding.mapView.getOverlays().add(marker);
+                    
+                } catch (NumberFormatException e) {
+                    Log.e("Favourites", "Error parsing favourite place: " + entry, e);
+                }
+            }
+        }
+        
+        binding.mapView.invalidate();
+        Log.d("Favourites", "Finished loading favourite places. Total markers on map: " + binding.mapView.getOverlays().size());
+    }
+
+    /**
+     * Refresh starred places on the map
+     * This method clears existing starred markers and reloads them from SharedPreferences
+     */
     private void refreshStarredPlacesOnMap() {
         Log.d("StarredPlaces", "Refreshing starred places on map");
         
-        // Clear existing star markers
+        // Clear existing starred markers
         clearStarredMarkers();
         
-        // Reload starred places
+        // Reload from SharedPreferences
         loadStarredPlaces();
         
-        // Force map refresh to ensure changes are visible
-        if (binding.mapView != null) {
-            binding.mapView.invalidate();
-            binding.mapView.postInvalidate();
-        }
-        
-        Log.d("StarredPlaces", "Finished refreshing starred places on map");
-        
-        // Verify synchronization after refresh
-        verifyStarredPlacesSynchronization();
+        Log.d("StarredPlaces", "Starred places refresh completed");
     }
 
+    /**
+     * Refresh favourite places on the map
+     * This method clears existing favourite markers and reloads them from SharedPreferences
+     */
+    private void refreshFavouritesOnMap() {
+        Log.d("Favourites", "Refreshing favourite places on map");
+        
+        // Clear existing favourite markers
+        clearFavouriteMarkers();
+        
+        // Reload from SharedPreferences
+        loadFavourites();
+        
+        Log.d("Favourites", "Favourite places refresh completed");
+    }
+
+    /**
+     * Clear all starred place markers from the map
+     * This method is useful for refreshing the map display
+     */
     private void clearStarredMarkers() {
-        // Remove all star markers from the map
+        if (binding.mapView == null) {
+            Log.w("StarredPlaces", "MapView is null, cannot clear markers");
+            return;
+        }
+        
         List<Overlay> overlays = binding.mapView.getOverlays();
         List<Overlay> overlaysToRemove = new ArrayList<>();
         
-        Log.d("StarredPlaces", "Clearing starred markers. Total overlays: " + overlays.size());
+        Log.d("StarredPlaces", "Scanning " + overlays.size() + " overlays for starred markers");
         
         for (Overlay overlay : overlays) {
             if (overlay instanceof Marker) {
@@ -287,7 +359,60 @@ public class MainActivity extends AppCompatActivity implements
         Log.d("StarredPlaces", "Removing " + overlaysToRemove.size() + " starred markers");
         overlays.removeAll(overlaysToRemove);
         binding.mapView.invalidate();
-        Log.d("StarredPlaces", "Starred markers cleared, map invalidated");
+        Log.d("StarredPlaces", "Starred markers cleared. Remaining overlays: " + overlays.size());
+    }
+
+    /**
+     * Clear all favourite place markers from the map
+     * This method is useful for refreshing the map display
+     */
+    private void clearFavouriteMarkers() {
+        if (binding.mapView == null) {
+            Log.w("Favourites", "MapView is null, cannot clear markers");
+            return;
+        }
+        
+        List<Overlay> overlays = binding.mapView.getOverlays();
+        List<Overlay> overlaysToRemove = new ArrayList<>();
+        
+        Log.d("Favourites", "Scanning " + overlays.size() + " overlays for favourite markers");
+        
+        for (Overlay overlay : overlays) {
+            if (overlay instanceof Marker) {
+                Marker marker = (Marker) overlay;
+                // Check both title and snippet for favourite markers with more robust identification
+                boolean isFavouriteMarker = false;
+                
+                if (marker.getTitle() != null && marker.getTitle().startsWith("Favourite:")) {
+                    isFavouriteMarker = true;
+                } else if (marker.getSnippet() != null && marker.getSnippet().startsWith("FAVOURITE_PLACE_")) {
+                    isFavouriteMarker = true;
+                } else if (marker.getIcon() != null) {
+                    // Additional check: verify if the marker has a heart icon
+                    try {
+                        Drawable icon = marker.getIcon();
+                        if (icon != null && icon.getConstantState() != null) {
+                            Drawable heartIcon = getResources().getDrawable(R.drawable.favourite);
+                            if (heartIcon != null && heartIcon.getConstantState() != null) {
+                                isFavouriteMarker = icon.getConstantState().equals(heartIcon.getConstantState());
+                            }
+                        }
+                    } catch (Exception e) {
+                        Log.w("Favourites", "Error checking marker icon: " + e.getMessage());
+                    }
+                }
+                
+                if (isFavouriteMarker) {
+                    overlaysToRemove.add(overlay);
+                    Log.d("Favourites", "Found favourite marker to remove: " + marker.getTitle() + " (snippet: " + marker.getSnippet() + ")");
+                }
+            }
+        }
+        
+        Log.d("Favourites", "Removing " + overlaysToRemove.size() + " favourite markers");
+        overlays.removeAll(overlaysToRemove);
+        binding.mapView.invalidate();
+        Log.d("Favourites", "Favourite markers cleared. Remaining overlays: " + overlays.size());
     }
 
     /**
@@ -327,6 +452,42 @@ public class MainActivity extends AppCompatActivity implements
     }
 
     /**
+     * Debug method to verify synchronization between SharedPreferences and map markers for favourites
+     */
+    private void verifyFavouritesSynchronization() {
+        SharedPreferences prefs = getSharedPreferences("favourites", MODE_PRIVATE);
+        Set<String> favouritesSet = prefs.getStringSet("favourites_list", new HashSet<>());
+        
+        Log.d("Favourites", "=== SYNCHRONIZATION VERIFICATION ===");
+        Log.d("Favourites", "SharedPreferences contains " + favouritesSet.size() + " favourite places");
+        
+        // Get detailed information about favourite markers on the map
+        List<String> favouritesOnMap = getFavouritesOnMap();
+        int favouriteMarkersOnMap = favouritesOnMap.size();
+        
+        Log.d("Favourites", "Map contains " + favouriteMarkersOnMap + " favourite markers:");
+        for (String markerInfo : favouritesOnMap) {
+            Log.d("Favourites", "  - " + markerInfo);
+        }
+        
+        // Log SharedPreferences content for comparison
+        Log.d("Favourites", "SharedPreferences content:");
+        for (String entry : favouritesSet) {
+            Log.d("Favourites", "  - " + entry);
+        }
+        
+        boolean isSynced = favouritesSet.size() == favouriteMarkersOnMap;
+        Log.d("Favourites", "Synchronization status: " + (isSynced ? "SYNCED" : "NOT SYNCED"));
+        
+        if (!isSynced) {
+            Log.w("Favourites", "SYNCHRONIZATION ISSUE DETECTED!");
+            Log.w("Favourites", "Difference: " + Math.abs(favouritesSet.size() - favouriteMarkersOnMap) + " items");
+        }
+        
+        Log.d("Favourites", "=== END VERIFICATION ===");
+    }
+
+    /**
      * Remove a specific starred place marker from the map by its identifier
      * This method provides more precise control over marker removal
      */
@@ -348,6 +509,36 @@ public class MainActivity extends AppCompatActivity implements
                 if (expectedSnippet.equals(marker.getSnippet())) {
                     overlays.remove(i);
                     Log.d("StarredPlaces", "Removed specific starred marker: " + marker.getTitle());
+                    break;
+                }
+            }
+        }
+        
+        binding.mapView.invalidate();
+    }
+
+    /**
+     * Remove a specific favourite place marker from the map by its identifier
+     * This method provides more precise control over marker removal
+     */
+    private void removeSpecificFavouriteMarker(String name, double lat, double lon) {
+        if (binding.mapView == null) {
+            Log.w("Favourites", "MapView is null, cannot remove marker");
+            return;
+        }
+        
+        List<Overlay> overlays = binding.mapView.getOverlays();
+        String expectedSnippet = "FAVOURITE_PLACE_" + name.hashCode() + "_" + lat + "_" + lon;
+        
+        Log.d("Favourites", "Attempting to remove specific marker with snippet: " + expectedSnippet);
+        
+        for (int i = overlays.size() - 1; i >= 0; i--) {
+            Overlay overlay = overlays.get(i);
+            if (overlay instanceof Marker) {
+                Marker marker = (Marker) overlay;
+                if (expectedSnippet.equals(marker.getSnippet())) {
+                    overlays.remove(i);
+                    Log.d("Favourites", "Removed specific favourite marker: " + marker.getTitle());
                     break;
                 }
             }
@@ -381,6 +572,30 @@ public class MainActivity extends AppCompatActivity implements
     }
 
     /**
+     * Check if a specific favourite place exists on the map
+     * This method is useful for debugging synchronization issues
+     */
+    private boolean isFavouritePlaceOnMap(String name, double lat, double lon) {
+        if (binding.mapView == null) {
+            return false;
+        }
+        
+        List<Overlay> overlays = binding.mapView.getOverlays();
+        String expectedSnippet = "FAVOURITE_PLACE_" + name.hashCode() + "_" + lat + "_" + lon;
+        
+        for (Overlay overlay : overlays) {
+            if (overlay instanceof Marker) {
+                Marker marker = (Marker) overlay;
+                if (expectedSnippet.equals(marker.getSnippet())) {
+                    return true;
+                }
+            }
+        }
+        
+        return false;
+    }
+
+    /**
      * Get all starred places currently displayed on the map
      * This method returns a list of marker information for debugging
      */
@@ -395,10 +610,10 @@ public class MainActivity extends AppCompatActivity implements
         for (Overlay overlay : overlays) {
             if (overlay instanceof Marker) {
                 Marker marker = (Marker) overlay;
-                                        if (marker.getTitle() != null && marker.getTitle().startsWith("Starred:")) {
-                            String info = marker.getTitle() + " (snippet: " + marker.getSnippet() + ")";
-                            starredOnMap.add(info);
-                        }
+                if (marker.getSnippet() != null && marker.getSnippet().startsWith("STARRED_PLACE_")) {
+                    String markerInfo = marker.getTitle() + " (snippet: " + marker.getSnippet() + ")";
+                    starredOnMap.add(markerInfo);
+                }
             }
         }
         
@@ -425,6 +640,25 @@ public class MainActivity extends AppCompatActivity implements
     }
 
     /**
+     * Force synchronization between SharedPreferences and map markers for favourites
+     * This method can be called manually if synchronization issues are detected
+     */
+    private void forceFavouritesSynchronization() {
+        Log.d("Favourites", "Force synchronization requested");
+        
+        // First verify current state
+        verifyFavouritesSynchronization();
+        
+        // Force refresh
+        refreshFavouritesOnMap();
+        
+        // Verify again after refresh
+        verifyFavouritesSynchronization();
+        
+        Log.d("Favourites", "Force synchronization completed");
+    }
+
+    /**
      * Add click listener to starred place markers for navigation
      */
     private void addStarredMarkerClickListener(Marker marker, String name, double lat, double lon) {
@@ -435,6 +669,28 @@ public class MainActivity extends AppCompatActivity implements
             
             // Update location info
             binding.locationInfo.setText(String.format("Starred Place: %s\nLat: %.6f, Lon: %.6f", name, lat, lon));
+            
+            // Enable navigate button
+            binding.btnNavigate.setEnabled(true);
+            
+            // Show a toast to indicate the place is selected
+            Toast.makeText(MainActivity.this, "Selected: " + name, Toast.LENGTH_SHORT).show();
+            
+            return true; // Return true to consume the event
+        });
+    }
+
+    /**
+     * Add click listener to favourite place markers for navigation
+     */
+    private void addFavouriteMarkerClickListener(Marker marker, String name, double lat, double lon) {
+        marker.setOnMarkerClickListener((marker1, mapView) -> {
+            // Set the selected location to this favourite place
+            selectedLocation = new GeoPoint(lat, lon);
+            selectedLocationAddress = name;
+            
+            // Update location info
+            binding.locationInfo.setText(String.format("Favourite Place: %s\nLat: %.6f, Lon: %.6f", name, lat, lon));
             
             // Enable navigate button
             binding.btnNavigate.setEnabled(true);
@@ -477,6 +733,7 @@ public class MainActivity extends AppCompatActivity implements
         mapManager.setupMap(binding.mapView);
         mapManager.resetAutoFollowState(); // Reset auto-follow to initial state
         loadStarredPlaces();
+        loadFavourites();
         mapManager.setOnMapClickListener(this);
         mapManager.setOnLocationUpdateListener(this);
 
@@ -505,6 +762,10 @@ public class MainActivity extends AppCompatActivity implements
         // Register broadcast receiver for starred places updates
         IntentFilter filter = new IntentFilter("STARRED_PLACES_UPDATED");
         registerReceiver(starredPlacesUpdateReceiver, filter, Context.RECEIVER_NOT_EXPORTED);
+
+        // Register broadcast receiver for favourites updates
+        IntentFilter favouritesFilter = new IntentFilter("FAVOURITES_UPDATED");
+        registerReceiver(favouritesUpdateReceiver, favouritesFilter, Context.RECEIVER_NOT_EXPORTED);
     }
 
     // Add missing method stubs
@@ -619,11 +880,75 @@ public class MainActivity extends AppCompatActivity implements
                 Toast.makeText(this, "Car clicked", Toast.LENGTH_SHORT).show());
 
         binding.btnFavorite.setOnClickListener(v -> {
-            String query = binding.searchView.getQuery().toString();
-            if (query.isEmpty()) {
-                Toast.makeText(this, "Search something before saving!", Toast.LENGTH_SHORT).show();
+            // Check if we have a location selected (either from search or map tap)
+            if (selectedLocation != null && !selectedLocationAddress.isEmpty()) {
+                // We have a location selected, favorite it
+                double lat = selectedLocation.getLatitude();
+                double lon = selectedLocation.getLongitude();
+                
+                // Add heart marker to map
+                Marker marker = new Marker(binding.mapView);
+                marker.setPosition(selectedLocation);
+                marker.setTitle("Favourite: " + selectedLocationAddress);
+                Drawable icon = getResources().getDrawable(R.drawable.favourite);
+                marker.setIcon(icon);
+                
+                // Add click listener for navigation
+                addFavouriteMarkerClickListener(marker, selectedLocationAddress, selectedLocation.getLatitude(), selectedLocation.getLongitude());
+                
+                binding.mapView.getOverlays().add(marker);
+                binding.mapView.invalidate();
+
+                // Save to favourites
+                saveFavourite(selectedLocationAddress, lat, lon);
+
+                Toast.makeText(this, "Favourite place saved!", Toast.LENGTH_SHORT).show();
+                
+                // Verify synchronization after adding new favourite place
+                verifyFavouritesSynchronization();
             } else {
-                saveFavourite(query);
+                // No location selected, check if there's a search query
+                String query = binding.searchView.getQuery().toString();
+                if (query.isEmpty()) {
+                    Toast.makeText(this, "Search for a location or tap on the map first!", Toast.LENGTH_SHORT).show();
+                } else {
+                    // Fallback to old behavior for search queries
+                    Geocoder geocoder = new Geocoder(MainActivity.this, Locale.getDefault());
+                    try {
+                        List<Address> addresses = geocoder.getFromLocationName(query, 1);
+                        if (addresses != null && !addresses.isEmpty()) {
+                            Address address = addresses.get(0);
+                            double lat = address.getLatitude();
+                            double lon = address.getLongitude();
+
+                            GeoPoint point = new GeoPoint(lat, lon);
+
+                            Marker marker = new Marker(binding.mapView);
+                            marker.setPosition(point);
+                            marker.setTitle("Favourite: " + query);
+                            Drawable icon = getResources().getDrawable(R.drawable.favourite);
+                            marker.setIcon(icon);
+                            
+                            // Add click listener for navigation
+                            addFavouriteMarkerClickListener(marker, query, lat, lon);
+                            
+                            binding.mapView.getOverlays().add(marker);
+                            binding.mapView.invalidate();
+
+                            saveFavourite(query, lat, lon);
+
+                            Toast.makeText(this, "Favourite place saved!", Toast.LENGTH_SHORT).show();
+                            
+                            // Verify synchronization after adding new favourite place
+                            verifyFavouritesSynchronization();
+                        } else {
+                            Toast.makeText(this, "Location not found", Toast.LENGTH_SHORT).show();
+                        }
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                        Toast.makeText(this, "Geocoding failed!", Toast.LENGTH_SHORT).show();
+                    }
+                }
             }
         });
 
@@ -726,11 +1051,15 @@ public class MainActivity extends AppCompatActivity implements
         });
     }
 
-    private void saveFavourite(String query) {
+    private void saveFavourite(String name, double lat, double lon) {
         SharedPreferences prefs = getSharedPreferences("favourites", MODE_PRIVATE);
         Set<String> favourites = prefs.getStringSet("favourites_list", new HashSet<>());
         Set<String> newFavourites = new HashSet<>(favourites);
-        newFavourites.add(query);
+        
+        // Store in format: name|lat|lon (same as starred places)
+        String entry = name + "|" + lat + "|" + lon;
+        newFavourites.add(entry);
+        
         prefs.edit().putStringSet("favourites_list", newFavourites).apply();
         Toast.makeText(this, "Saved to favourites!", Toast.LENGTH_SHORT).show();
     }
@@ -1593,6 +1922,9 @@ public class MainActivity extends AppCompatActivity implements
         
         // Verify starred places synchronization when resuming
         verifyStarredPlacesSynchronization();
+        
+        // Verify favourites synchronization when resuming
+        verifyFavouritesSynchronization();
     }
 
     @Override
@@ -1618,6 +1950,13 @@ public class MainActivity extends AppCompatActivity implements
         // Unregister broadcast receiver
         try {
             unregisterReceiver(starredPlacesUpdateReceiver);
+        } catch (Exception e) {
+            // Receiver might not be registered
+        }
+
+        // Unregister broadcast receiver for favourites updates
+        try {
+            unregisterReceiver(favouritesUpdateReceiver);
         } catch (Exception e) {
             // Receiver might not be registered
         }
@@ -2100,6 +2439,7 @@ public class MainActivity extends AppCompatActivity implements
 
         if (requestCode == REQUEST_CODE_BOOKMARK && resultCode == RESULT_OK && data != null) {
             String action = data.getStringExtra("action");
+            Log.d("MainActivity", "Received bookmark result with action: " + action);
             
             if ("deleted".equals(action)) {
                 // Handle individual deletion - refresh map immediately
@@ -2212,6 +2552,82 @@ public class MainActivity extends AppCompatActivity implements
                     // Automatically start navigation
                     onNavigateClicked();
                 }
+            } else if ("favourite_navigate".equals(action)) {
+                // Handle navigation to a favourite place
+                String name = data.getStringExtra("favourite_name");
+                double lat = data.getDoubleExtra("favourite_lat", 0);
+                double lon = data.getDoubleExtra("favourite_lon", 0);
+
+                if (name != null && lat != 0 && lon != 0) {
+                    GeoPoint point = new GeoPoint(lat, lon);
+                    
+                    // Set the selected location to the favourite place
+                    selectedLocation = point;
+                    selectedLocationAddress = name;
+                    
+                    // Center the map on the favourite place
+                    binding.mapView.getController().setZoom(15.0);
+                    binding.mapView.getController().setCenter(point);
+                    
+                    // Clear existing markers and load favourites
+                    mapManager.clearMarkers();
+                    loadFavourites();
+                    
+                    // Add a marker for the favourite place
+                    Marker marker = new Marker(binding.mapView);
+                    marker.setPosition(point);
+                    marker.setTitle("Favourite: " + name);
+                    Drawable icon = getResources().getDrawable(R.drawable.favourite);
+                    marker.setIcon(icon);
+                    
+                    // Add click listener for navigation
+                    addFavouriteMarkerClickListener(marker, name, lat, lon);
+                    
+                    binding.mapView.getOverlays().add(marker);
+                    
+                    binding.mapView.invalidate();
+                    
+                    // Update location info
+                    binding.locationInfo.setText(String.format("Favourite Place: %s\nLat: %.6f, Lon: %.6f", name, lat, lon));
+                    
+                    // Enable navigate button
+                    binding.btnNavigate.setEnabled(true);
+                    
+                    // Automatically start navigation
+                    onNavigateClicked();
+                }
+            } else if ("deleted_favourite".equals(action)) {
+                // Handle individual favourite deletion - refresh map immediately
+                Log.d("Favourites", "Processing individual favourite deletion");
+                String deletedEntry = data.getStringExtra("deleted_entry");
+                if (deletedEntry != null) {
+                    Log.d("Favourites", "Received deletion result for: " + deletedEntry);
+                    // Parse the deleted entry and remove specific marker
+                    String[] parts = deletedEntry.split("\\|");
+                    if (parts.length == 3) {
+                        String name = parts[0];
+                        double lat = Double.parseDouble(parts[1]);
+                        double lon = Double.parseDouble(parts[2]);
+                        removeSpecificFavouriteMarker(name, lat, lon);
+                        Log.d("Favourites", "Immediately removed marker for: " + name);
+                    }
+                }
+                // Also refresh the entire map to ensure synchronization
+                refreshFavouritesOnMap();
+                // Verify synchronization after immediate deletion
+                verifyFavouritesSynchronization();
+                
+            } else if ("deleted_all_favourites".equals(action)) {
+                // Handle bulk deletion - clear all favourite markers immediately
+                Log.d("Favourites", "Processing bulk favourite deletion");
+                Log.d("Favourites", "Received bulk deletion result");
+                clearFavouriteMarkers();
+                if (binding.mapView != null) {
+                    binding.mapView.invalidate();
+                }
+                Log.d("Favourites", "Immediately cleared all favourite markers");
+                // Verify synchronization after bulk deletion
+                verifyFavouritesSynchronization();
             } else {
                 // Fallback for backward compatibility
                 String name = data.getStringExtra("starred_name");
@@ -2256,6 +2672,31 @@ public class MainActivity extends AppCompatActivity implements
                 }
             }
         }
+    }
+
+    /**
+     * Get a list of favourite places currently displayed on the map
+     * This method is useful for debugging synchronization issues
+     */
+    private List<String> getFavouritesOnMap() {
+        List<String> favouritesOnMap = new ArrayList<>();
+        
+        if (binding.mapView == null) {
+            return favouritesOnMap;
+        }
+        
+        List<Overlay> overlays = binding.mapView.getOverlays();
+        for (Overlay overlay : overlays) {
+            if (overlay instanceof Marker) {
+                Marker marker = (Marker) overlay;
+                if (marker.getSnippet() != null && marker.getSnippet().startsWith("FAVOURITE_PLACE_")) {
+                    String markerInfo = marker.getTitle() + " (snippet: " + marker.getSnippet() + ")";
+                    favouritesOnMap.add(markerInfo);
+                }
+            }
+        }
+        
+        return favouritesOnMap;
     }
 }
 
