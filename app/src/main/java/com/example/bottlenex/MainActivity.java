@@ -102,10 +102,10 @@ public class MainActivity extends AppCompatActivity implements
     private boolean isNavigating = false;
     private Location lastSpeedAlertLocation = null; // Track location for 100m alerts
     private RoutePlanner.RouteData currentRouteData = null;
-    
+
     // Store the address of the currently selected location (from search or map tap)
     private String selectedLocationAddress = "";
-    
+
     // Route History tracking stuff
     private DatabaseHelper databaseHelper;
     private long journeyStartTime;
@@ -115,7 +115,7 @@ public class MainActivity extends AppCompatActivity implements
     private String journeyEndAddress;
     private double journeyDistance;
     private static final int REQUEST_CODE_ROUTE_HISTORY = 101;
-    
+
     // Search suggestions and autocomplete
     private List<Address> searchSuggestions = new ArrayList<>();
     private boolean isShowingSuggestions = false;
@@ -132,7 +132,7 @@ public class MainActivity extends AppCompatActivity implements
                 Log.d("StarredPlaces", "Broadcast received: STARRED_PLACES_UPDATED");
                 // Refresh starred places on the map
                 refreshStarredPlacesOnMap();
-                
+
                 // Additional verification after broadcast
                 Log.d("StarredPlaces", "Broadcast processed, synchronization verified");
             }
@@ -147,7 +147,7 @@ public class MainActivity extends AppCompatActivity implements
                 Log.d("Favourites", "Broadcast received: FAVOURITES_UPDATED");
                 // Refresh favourites on the map
                 refreshFavouritesOnMap();
-                
+
                 // Additional verification after broadcast
                 Log.d("Favourites", "Broadcast processed, synchronization verified");
             }
@@ -167,9 +167,9 @@ public class MainActivity extends AppCompatActivity implements
         String entry = name + "|" + lat + "|" + lon;
         newStarred.add(entry);
         prefs.edit().putStringSet("starred_places_list", newStarred).apply();
-        
+
         Log.d("StarredPlaces", "Saved to SharedPreferences: " + name + " at " + lat + ", " + lon);
-        
+
         // Also add the marker to the map immediately
         GeoPoint point = new GeoPoint(lat, lon);
         Marker marker = new Marker(binding.mapView);
@@ -179,12 +179,12 @@ public class MainActivity extends AppCompatActivity implements
         marker.setSnippet("STARRED_PLACE_" + name.hashCode() + "_" + lat + "_" + lon);
         Drawable icon = getResources().getDrawable(R.drawable.star);
         marker.setIcon(icon);
-        
+
         // Add click listener for navigation
         addStarredMarkerClickListener(marker, name, lat, lon);
-        
+
         binding.mapView.getOverlays().add(marker);
-        
+
         if (binding.mapView != null) {
             binding.mapView.invalidate();
             Log.d("StarredPlaces", "Immediately added marker for: " + name + " at " + lat + ", " + lon + " (snippet: " + marker.getSnippet() + ")");
@@ -196,9 +196,9 @@ public class MainActivity extends AppCompatActivity implements
     private void loadStarredPlaces() {
         SharedPreferences prefs = getSharedPreferences("starred_places", MODE_PRIVATE);
         Set<String> starredSet = prefs.getStringSet("starred_places_list", new HashSet<>());
-        
+
         Log.d("StarredPlaces", "Loading " + starredSet.size() + " starred places from SharedPreferences");
-        
+
         for (String entry : starredSet) {
             String[] parts = entry.split("\\|");
             if (parts.length == 3) {
@@ -206,31 +206,31 @@ public class MainActivity extends AppCompatActivity implements
                     String name = parts[0];
                     double lat = Double.parseDouble(parts[1]);
                     double lon = Double.parseDouble(parts[2]);
-                    
+
                     Log.d("StarredPlaces", "Adding starred marker: " + name + " at " + lat + ", " + lon);
-                    
+
                     // Create marker
                     Marker marker = new Marker(binding.mapView);
                     marker.setPosition(new GeoPoint(lat, lon));
                     marker.setTitle("Starred: " + name);
                     marker.setSnippet("STARRED_PLACE_" + name.hashCode() + "_" + lat + "_" + lon);
-                    
+
                     // Set star icon
                     Drawable icon = getResources().getDrawable(R.drawable.star);
                     marker.setIcon(icon);
-                    
+
                     // Add click listener for navigation
                     addStarredMarkerClickListener(marker, name, lat, lon);
-                    
+
                     // Add to map
                     binding.mapView.getOverlays().add(marker);
-                    
+
                 } catch (NumberFormatException e) {
                     Log.e("StarredPlaces", "Error parsing starred place: " + entry, e);
                 }
             }
         }
-        
+
         binding.mapView.invalidate();
         Log.d("StarredPlaces", "Finished loading starred places. Total markers on map: " + binding.mapView.getOverlays().size());
     }
@@ -238,9 +238,9 @@ public class MainActivity extends AppCompatActivity implements
     private void loadFavourites() {
         SharedPreferences prefs = getSharedPreferences("favourites", MODE_PRIVATE);
         Set<String> favouritesSet = prefs.getStringSet("favourites_list", new HashSet<>());
-        
+
         Log.d("Favourites", "Loading " + favouritesSet.size() + " favourite places from SharedPreferences");
-        
+
         for (String entry : favouritesSet) {
             String[] parts = entry.split("\\|");
             if (parts.length == 3) {
@@ -248,33 +248,141 @@ public class MainActivity extends AppCompatActivity implements
                     String name = parts[0];
                     double lat = Double.parseDouble(parts[1]);
                     double lon = Double.parseDouble(parts[2]);
-                    
+
                     Log.d("Favourites", "Adding favourite marker: " + name + " at " + lat + ", " + lon);
-                    
+
                     // Create marker
                     Marker marker = new Marker(binding.mapView);
                     marker.setPosition(new GeoPoint(lat, lon));
                     marker.setTitle("Favourite: " + name);
                     marker.setSnippet("FAVOURITE_PLACE_" + name.hashCode() + "_" + lat + "_" + lon);
-                    
+
                     // Set heart icon
                     Drawable icon = getResources().getDrawable(R.drawable.favourite);
                     marker.setIcon(icon);
-                    
+
                     // Add click listener for navigation
                     addFavouriteMarkerClickListener(marker, name, lat, lon);
-                    
+
                     // Add to map
                     binding.mapView.getOverlays().add(marker);
-                    
+
                 } catch (NumberFormatException e) {
                     Log.e("Favourites", "Error parsing favourite place: " + entry, e);
                 }
             }
         }
-        
+
         binding.mapView.invalidate();
         Log.d("Favourites", "Finished loading favourite places. Total markers on map: " + binding.mapView.getOverlays().size());
+    }
+
+    private void loadToGoPlaces() {
+        SharedPreferences prefs = getSharedPreferences("to_go_places", MODE_PRIVATE);
+        Set<String> toGoPlacesSet = prefs.getStringSet("places_set", new HashSet<>());
+
+        Log.d("ToGoPlaces", "Loading " + toGoPlacesSet.size() + " To Go places from SharedPreferences");
+
+        for (String placeName : toGoPlacesSet) {
+            // Geocode the place name to get coordinates
+            Geocoder geocoder = new Geocoder(this, Locale.getDefault());
+            try {
+                List<Address> addresses = geocoder.getFromLocationName(placeName, 1);
+                if (addresses != null && !addresses.isEmpty()) {
+                    Address address = addresses.get(0);
+                    double lat = address.getLatitude();
+                    double lon = address.getLongitude();
+
+                    Log.d("ToGoPlaces", "Adding To Go marker: " + placeName + " at " + lat + ", " + lon);
+
+                    // Create marker
+                    Marker marker = new Marker(binding.mapView);
+                    marker.setPosition(new GeoPoint(lat, lon));
+                    marker.setTitle("To Go: " + placeName);
+                    marker.setSnippet("TOGO_PLACE_" + placeName.hashCode() + "_" + lat + "_" + lon);
+
+                    // Set bookmark icon
+                    Drawable icon = getResources().getDrawable(R.drawable.bookmark);
+                    marker.setIcon(icon);
+
+                    // Add click listener for navigation
+                    addToGoMarkerClickListener(marker, placeName, lat, lon);
+
+                    // Add to map
+                    binding.mapView.getOverlays().add(marker);
+
+                } else {
+                    Log.w("ToGoPlaces", "Could not geocode place: " + placeName);
+                }
+            } catch (IOException e) {
+                Log.e("ToGoPlaces", "Error geocoding place: " + placeName, e);
+            }
+        }
+
+        binding.mapView.invalidate();
+        Log.d("ToGoPlaces", "Finished loading To Go places. Total markers on map: " + binding.mapView.getOverlays().size());
+    }
+
+    private void addToGoMarkerClickListener(Marker marker, String name, double lat, double lon) {
+        marker.setOnMarkerClickListener((marker1, mapView) -> {
+            // Show navigation dialog
+            String[] options = {"Navigate to " + name, "Remove from To Go Places"};
+            new AlertDialog.Builder(MainActivity.this)
+                    .setTitle("To Go Place: " + name)
+                    .setItems(options, (dialog, which) -> {
+                        if (which == 0) {
+                            // Navigate to this place
+                            selectedLocation = new GeoPoint(lat, lon);
+                            selectedLocationAddress = name;
+
+                            // Center the map on the place
+                            binding.mapView.getController().setZoom(15.0);
+                            binding.mapView.getController().setCenter(selectedLocation);
+
+                            // Update location info
+                            binding.locationInfo.setText(String.format("To Go Place: %s\nLat: %.6f, Lon: %.6f", name, lat, lon));
+
+                            // Enable navigate button
+                            binding.btnNavigate.setEnabled(true);
+
+                            // Start navigation
+                            onNavigateClicked();
+                        } else if (which == 1) {
+                            // Remove from To Go Places
+                            removeFromToGoPlaces(name);
+                        }
+                    })
+                    .setNegativeButton("Cancel", null)
+                    .show();
+            return true;
+        });
+    }
+
+    private void removeFromToGoPlaces(String placeName) {
+        SharedPreferences prefs = getSharedPreferences("to_go_places", MODE_PRIVATE);
+        Set<String> toGoPlacesSet = prefs.getStringSet("places_set", new HashSet<>());
+        toGoPlacesSet.remove(placeName);
+        prefs.edit().putStringSet("places_set", toGoPlacesSet).apply();
+
+        // Remove marker from map
+        removeToGoMarker(placeName);
+
+        Toast.makeText(this, "Removed from To Go Places: " + placeName, Toast.LENGTH_SHORT).show();
+    }
+
+    private void removeToGoMarker(String placeName) {
+        List<Overlay> overlays = binding.mapView.getOverlays();
+        for (int i = overlays.size() - 1; i >= 0; i--) {
+            Overlay overlay = overlays.get(i);
+            if (overlay instanceof Marker) {
+                Marker marker = (Marker) overlay;
+                if (marker.getSnippet() != null && marker.getSnippet().startsWith("TOGO_PLACE_") &&
+                        marker.getSnippet().contains(String.valueOf(placeName.hashCode()))) {
+                    overlays.remove(i);
+                }
+            }
+        }
+        binding.mapView.invalidate();
     }
 
     /**
@@ -283,13 +391,13 @@ public class MainActivity extends AppCompatActivity implements
      */
     private void refreshStarredPlacesOnMap() {
         Log.d("StarredPlaces", "Refreshing starred places on map");
-        
+
         // Clear existing starred markers
         clearStarredMarkers();
-        
+
         // Reload from SharedPreferences
         loadStarredPlaces();
-        
+
         Log.d("StarredPlaces", "Starred places refresh completed");
     }
 
@@ -299,13 +407,13 @@ public class MainActivity extends AppCompatActivity implements
      */
     private void refreshFavouritesOnMap() {
         Log.d("Favourites", "Refreshing favourite places on map");
-        
+
         // Clear existing favourite markers
         clearFavouriteMarkers();
-        
+
         // Reload from SharedPreferences
         loadFavourites();
-        
+
         Log.d("Favourites", "Favourite places refresh completed");
     }
 
@@ -318,18 +426,18 @@ public class MainActivity extends AppCompatActivity implements
             Log.w("StarredPlaces", "MapView is null, cannot clear markers");
             return;
         }
-        
+
         List<Overlay> overlays = binding.mapView.getOverlays();
         List<Overlay> overlaysToRemove = new ArrayList<>();
-        
+
         Log.d("StarredPlaces", "Scanning " + overlays.size() + " overlays for starred markers");
-        
+
         for (Overlay overlay : overlays) {
             if (overlay instanceof Marker) {
                 Marker marker = (Marker) overlay;
                 // Check both title and snippet for starred markers with more robust identification
                 boolean isStarredMarker = false;
-                
+
                 if (marker.getTitle() != null && marker.getTitle().startsWith("Starred:")) {
                     isStarredMarker = true;
                 } else if (marker.getSnippet() != null && marker.getSnippet().startsWith("STARRED_PLACE_")) {
@@ -348,14 +456,14 @@ public class MainActivity extends AppCompatActivity implements
                         Log.w("StarredPlaces", "Error checking marker icon: " + e.getMessage());
                     }
                 }
-                
+
                 if (isStarredMarker) {
                     overlaysToRemove.add(overlay);
                     Log.d("StarredPlaces", "Found starred marker to remove: " + marker.getTitle() + " (snippet: " + marker.getSnippet() + ")");
                 }
             }
         }
-        
+
         Log.d("StarredPlaces", "Removing " + overlaysToRemove.size() + " starred markers");
         overlays.removeAll(overlaysToRemove);
         binding.mapView.invalidate();
@@ -371,18 +479,18 @@ public class MainActivity extends AppCompatActivity implements
             Log.w("Favourites", "MapView is null, cannot clear markers");
             return;
         }
-        
+
         List<Overlay> overlays = binding.mapView.getOverlays();
         List<Overlay> overlaysToRemove = new ArrayList<>();
-        
+
         Log.d("Favourites", "Scanning " + overlays.size() + " overlays for favourite markers");
-        
+
         for (Overlay overlay : overlays) {
             if (overlay instanceof Marker) {
                 Marker marker = (Marker) overlay;
                 // Check both title and snippet for favourite markers with more robust identification
                 boolean isFavouriteMarker = false;
-                
+
                 if (marker.getTitle() != null && marker.getTitle().startsWith("Favourite:")) {
                     isFavouriteMarker = true;
                 } else if (marker.getSnippet() != null && marker.getSnippet().startsWith("FAVOURITE_PLACE_")) {
@@ -401,14 +509,14 @@ public class MainActivity extends AppCompatActivity implements
                         Log.w("Favourites", "Error checking marker icon: " + e.getMessage());
                     }
                 }
-                
+
                 if (isFavouriteMarker) {
                     overlaysToRemove.add(overlay);
                     Log.d("Favourites", "Found favourite marker to remove: " + marker.getTitle() + " (snippet: " + marker.getSnippet() + ")");
                 }
             }
         }
-        
+
         Log.d("Favourites", "Removing " + overlaysToRemove.size() + " favourite markers");
         overlays.removeAll(overlaysToRemove);
         binding.mapView.invalidate();
@@ -421,33 +529,33 @@ public class MainActivity extends AppCompatActivity implements
     private void verifyStarredPlacesSynchronization() {
         SharedPreferences prefs = getSharedPreferences("starred_places", MODE_PRIVATE);
         Set<String> starredSet = prefs.getStringSet("starred_places_list", new HashSet<>());
-        
+
         Log.d("StarredPlaces", "=== SYNCHRONIZATION VERIFICATION ===");
         Log.d("StarredPlaces", "SharedPreferences contains " + starredSet.size() + " starred places");
-        
+
         // Get detailed information about starred markers on the map
         List<String> starredOnMap = getStarredPlacesOnMap();
         int starredMarkersOnMap = starredOnMap.size();
-        
+
         Log.d("StarredPlaces", "Map contains " + starredMarkersOnMap + " starred markers:");
         for (String markerInfo : starredOnMap) {
             Log.d("StarredPlaces", "  - " + markerInfo);
         }
-        
+
         // Log SharedPreferences content for comparison
         Log.d("StarredPlaces", "SharedPreferences content:");
         for (String entry : starredSet) {
             Log.d("StarredPlaces", "  - " + entry);
         }
-        
+
         boolean isSynced = starredSet.size() == starredMarkersOnMap;
         Log.d("StarredPlaces", "Synchronization status: " + (isSynced ? "SYNCED" : "NOT SYNCED"));
-        
+
         if (!isSynced) {
             Log.w("StarredPlaces", "SYNCHRONIZATION ISSUE DETECTED!");
             Log.w("StarredPlaces", "Difference: " + Math.abs(starredSet.size() - starredMarkersOnMap) + " items");
         }
-        
+
         Log.d("StarredPlaces", "=== END VERIFICATION ===");
     }
 
@@ -457,33 +565,33 @@ public class MainActivity extends AppCompatActivity implements
     private void verifyFavouritesSynchronization() {
         SharedPreferences prefs = getSharedPreferences("favourites", MODE_PRIVATE);
         Set<String> favouritesSet = prefs.getStringSet("favourites_list", new HashSet<>());
-        
+
         Log.d("Favourites", "=== SYNCHRONIZATION VERIFICATION ===");
         Log.d("Favourites", "SharedPreferences contains " + favouritesSet.size() + " favourite places");
-        
+
         // Get detailed information about favourite markers on the map
         List<String> favouritesOnMap = getFavouritesOnMap();
         int favouriteMarkersOnMap = favouritesOnMap.size();
-        
+
         Log.d("Favourites", "Map contains " + favouriteMarkersOnMap + " favourite markers:");
         for (String markerInfo : favouritesOnMap) {
             Log.d("Favourites", "  - " + markerInfo);
         }
-        
+
         // Log SharedPreferences content for comparison
         Log.d("Favourites", "SharedPreferences content:");
         for (String entry : favouritesSet) {
             Log.d("Favourites", "  - " + entry);
         }
-        
+
         boolean isSynced = favouritesSet.size() == favouriteMarkersOnMap;
         Log.d("Favourites", "Synchronization status: " + (isSynced ? "SYNCED" : "NOT SYNCED"));
-        
+
         if (!isSynced) {
             Log.w("Favourites", "SYNCHRONIZATION ISSUE DETECTED!");
             Log.w("Favourites", "Difference: " + Math.abs(favouritesSet.size() - favouriteMarkersOnMap) + " items");
         }
-        
+
         Log.d("Favourites", "=== END VERIFICATION ===");
     }
 
@@ -496,12 +604,12 @@ public class MainActivity extends AppCompatActivity implements
             Log.w("StarredPlaces", "MapView is null, cannot remove marker");
             return;
         }
-        
+
         List<Overlay> overlays = binding.mapView.getOverlays();
         String expectedSnippet = "STARRED_PLACE_" + name.hashCode() + "_" + lat + "_" + lon;
-        
+
         Log.d("StarredPlaces", "Attempting to remove specific marker with snippet: " + expectedSnippet);
-        
+
         for (int i = overlays.size() - 1; i >= 0; i--) {
             Overlay overlay = overlays.get(i);
             if (overlay instanceof Marker) {
@@ -513,7 +621,7 @@ public class MainActivity extends AppCompatActivity implements
                 }
             }
         }
-        
+
         binding.mapView.invalidate();
     }
 
@@ -526,12 +634,12 @@ public class MainActivity extends AppCompatActivity implements
             Log.w("Favourites", "MapView is null, cannot remove marker");
             return;
         }
-        
+
         List<Overlay> overlays = binding.mapView.getOverlays();
         String expectedSnippet = "FAVOURITE_PLACE_" + name.hashCode() + "_" + lat + "_" + lon;
-        
+
         Log.d("Favourites", "Attempting to remove specific marker with snippet: " + expectedSnippet);
-        
+
         for (int i = overlays.size() - 1; i >= 0; i--) {
             Overlay overlay = overlays.get(i);
             if (overlay instanceof Marker) {
@@ -543,7 +651,7 @@ public class MainActivity extends AppCompatActivity implements
                 }
             }
         }
-        
+
         binding.mapView.invalidate();
     }
 
@@ -555,10 +663,10 @@ public class MainActivity extends AppCompatActivity implements
         if (binding.mapView == null) {
             return false;
         }
-        
+
         List<Overlay> overlays = binding.mapView.getOverlays();
         String expectedSnippet = "STARRED_PLACE_" + name.hashCode() + "_" + lat + "_" + lon;
-        
+
         for (Overlay overlay : overlays) {
             if (overlay instanceof Marker) {
                 Marker marker = (Marker) overlay;
@@ -567,7 +675,7 @@ public class MainActivity extends AppCompatActivity implements
                 }
             }
         }
-        
+
         return false;
     }
 
@@ -579,10 +687,10 @@ public class MainActivity extends AppCompatActivity implements
         if (binding.mapView == null) {
             return false;
         }
-        
+
         List<Overlay> overlays = binding.mapView.getOverlays();
         String expectedSnippet = "FAVOURITE_PLACE_" + name.hashCode() + "_" + lat + "_" + lon;
-        
+
         for (Overlay overlay : overlays) {
             if (overlay instanceof Marker) {
                 Marker marker = (Marker) overlay;
@@ -591,7 +699,7 @@ public class MainActivity extends AppCompatActivity implements
                 }
             }
         }
-        
+
         return false;
     }
 
@@ -601,11 +709,11 @@ public class MainActivity extends AppCompatActivity implements
      */
     private List<String> getStarredPlacesOnMap() {
         List<String> starredOnMap = new ArrayList<>();
-        
+
         if (binding.mapView == null) {
             return starredOnMap;
         }
-        
+
         List<Overlay> overlays = binding.mapView.getOverlays();
         for (Overlay overlay : overlays) {
             if (overlay instanceof Marker) {
@@ -616,7 +724,7 @@ public class MainActivity extends AppCompatActivity implements
                 }
             }
         }
-        
+
         return starredOnMap;
     }
 
@@ -626,16 +734,16 @@ public class MainActivity extends AppCompatActivity implements
      */
     private void forceSynchronization() {
         Log.d("StarredPlaces", "Force synchronization requested");
-        
+
         // First verify current state
         verifyStarredPlacesSynchronization();
-        
+
         // Force refresh
         refreshStarredPlacesOnMap();
-        
+
         // Verify again after refresh
         verifyStarredPlacesSynchronization();
-        
+
         Log.d("StarredPlaces", "Force synchronization completed");
     }
 
@@ -645,16 +753,16 @@ public class MainActivity extends AppCompatActivity implements
      */
     private void forceFavouritesSynchronization() {
         Log.d("Favourites", "Force synchronization requested");
-        
+
         // First verify current state
         verifyFavouritesSynchronization();
-        
+
         // Force refresh
         refreshFavouritesOnMap();
-        
+
         // Verify again after refresh
         verifyFavouritesSynchronization();
-        
+
         Log.d("Favourites", "Force synchronization completed");
     }
 
@@ -666,16 +774,16 @@ public class MainActivity extends AppCompatActivity implements
             // Set the selected location to this starred place
             selectedLocation = new GeoPoint(lat, lon);
             selectedLocationAddress = name;
-            
+
             // Update location info
             binding.locationInfo.setText(String.format("Starred Place: %s\nLat: %.6f, Lon: %.6f", name, lat, lon));
-            
+
             // Enable navigate button
             binding.btnNavigate.setEnabled(true);
-            
+
             // Show a toast to indicate the place is selected
             Toast.makeText(MainActivity.this, "Selected: " + name, Toast.LENGTH_SHORT).show();
-            
+
             return true; // Return true to consume the event
         });
     }
@@ -688,16 +796,16 @@ public class MainActivity extends AppCompatActivity implements
             // Set the selected location to this favourite place
             selectedLocation = new GeoPoint(lat, lon);
             selectedLocationAddress = name;
-            
+
             // Update location info
             binding.locationInfo.setText(String.format("Favourite Place: %s\nLat: %.6f, Lon: %.6f", name, lat, lon));
-            
+
             // Enable navigate button
             binding.btnNavigate.setEnabled(true);
-            
+
             // Show a toast to indicate the place is selected
             Toast.makeText(MainActivity.this, "Selected: " + name, Toast.LENGTH_SHORT).show();
-            
+
             return true; // Return true to consume the event
         });
     }
@@ -734,15 +842,16 @@ public class MainActivity extends AppCompatActivity implements
         mapManager.resetAutoFollowState(); // Reset auto-follow to initial state
         loadStarredPlaces();
         loadFavourites();
+        loadToGoPlaces();
         mapManager.setOnMapClickListener(this);
         mapManager.setOnLocationUpdateListener(this);
 
         // ini dbhelper for rh
         databaseHelper = new DatabaseHelper(this);
-        
+
         // Initialize ML predictor for traffic analysis
         mlPredictor = new TensorFlowTrafficPredictor(this);
-        
+
         // test db conn
         try {
             databaseHelper.getReadableDatabase();
@@ -818,18 +927,18 @@ public class MainActivity extends AppCompatActivity implements
                         hideSearchSuggestions();
                         return false;
                     }
-                    
+
                     // Don't show suggestions during navigation
                     if (isNavigating) {
                         hideSearchSuggestions();
                         return false;
                     }
-                    
+
                     // Cancel previous search
                     if (searchRunnable != null) {
                         searchHandler.removeCallbacks(searchRunnable);
                     }
-                    
+
                     // Debounce search suggestions
                     searchRunnable = () -> {
                         if (newText.trim().length() >= 2) {
@@ -842,7 +951,7 @@ public class MainActivity extends AppCompatActivity implements
                     return false;
                 }
             });
-            
+
             // Handle search view focus changes
             searchView.setOnQueryTextFocusChangeListener((v, hasFocus) -> {
                 if (!hasFocus) {
@@ -851,7 +960,7 @@ public class MainActivity extends AppCompatActivity implements
                 }
             });
         }
-        
+
         // Setup suggestion dropdown
         setupSuggestionDropdown();
 
@@ -885,17 +994,17 @@ public class MainActivity extends AppCompatActivity implements
                 // We have a location selected, favorite it
                 double lat = selectedLocation.getLatitude();
                 double lon = selectedLocation.getLongitude();
-                
+
                 // Add heart marker to map
                 Marker marker = new Marker(binding.mapView);
                 marker.setPosition(selectedLocation);
                 marker.setTitle("Favourite: " + selectedLocationAddress);
                 Drawable icon = getResources().getDrawable(R.drawable.favourite);
                 marker.setIcon(icon);
-                
+
                 // Add click listener for navigation
                 addFavouriteMarkerClickListener(marker, selectedLocationAddress, selectedLocation.getLatitude(), selectedLocation.getLongitude());
-                
+
                 binding.mapView.getOverlays().add(marker);
                 binding.mapView.invalidate();
 
@@ -903,7 +1012,7 @@ public class MainActivity extends AppCompatActivity implements
                 saveFavourite(selectedLocationAddress, lat, lon);
 
                 Toast.makeText(this, "Favourite place saved!", Toast.LENGTH_SHORT).show();
-                
+
                 // Verify synchronization after adding new favourite place
                 verifyFavouritesSynchronization();
             } else {
@@ -928,17 +1037,17 @@ public class MainActivity extends AppCompatActivity implements
                             marker.setTitle("Favourite: " + query);
                             Drawable icon = getResources().getDrawable(R.drawable.favourite);
                             marker.setIcon(icon);
-                            
+
                             // Add click listener for navigation
                             addFavouriteMarkerClickListener(marker, query, lat, lon);
-                            
+
                             binding.mapView.getOverlays().add(marker);
                             binding.mapView.invalidate();
 
                             saveFavourite(query, lat, lon);
 
                             Toast.makeText(this, "Favourite place saved!", Toast.LENGTH_SHORT).show();
-                            
+
                             // Verify synchronization after adding new favourite place
                             verifyFavouritesSynchronization();
                         } else {
@@ -958,17 +1067,17 @@ public class MainActivity extends AppCompatActivity implements
                 // We have a location selected, star it
                 double lat = selectedLocation.getLatitude();
                 double lon = selectedLocation.getLongitude();
-                
+
                 // Add star marker to map
                 Marker marker = new Marker(binding.mapView);
                 marker.setPosition(selectedLocation);
                 marker.setTitle("Starred: " + selectedLocationAddress);
                 Drawable icon = getResources().getDrawable(R.drawable.star);
                 marker.setIcon(icon);
-                
+
                 // Add click listener for navigation
                 addStarredMarkerClickListener(marker, selectedLocationAddress, selectedLocation.getLatitude(), selectedLocation.getLongitude());
-                
+
                 binding.mapView.getOverlays().add(marker);
                 binding.mapView.invalidate();
 
@@ -976,7 +1085,7 @@ public class MainActivity extends AppCompatActivity implements
                 saveStarred(selectedLocationAddress, lat, lon);
 
                 Toast.makeText(this, "Starred place saved!", Toast.LENGTH_SHORT).show();
-                
+
                 // Verify synchronization after adding new starred place
                 verifyStarredPlacesSynchronization();
             } else {
@@ -1001,17 +1110,17 @@ public class MainActivity extends AppCompatActivity implements
                             marker.setTitle("Starred: " + query);
                             Drawable icon = getResources().getDrawable(R.drawable.star);
                             marker.setIcon(icon);
-                            
+
                             // Add click listener for navigation
                             addStarredMarkerClickListener(marker, query, lat, lon);
-                            
+
                             binding.mapView.getOverlays().add(marker);
                             binding.mapView.invalidate();
 
                             saveStarred(query, lat, lon);
 
                             Toast.makeText(this, "Starred place saved!", Toast.LENGTH_SHORT).show();
-                            
+
                             // Verify synchronization after adding new starred place
                             verifyStarredPlacesSynchronization();
                         } else {
@@ -1055,11 +1164,11 @@ public class MainActivity extends AppCompatActivity implements
         SharedPreferences prefs = getSharedPreferences("favourites", MODE_PRIVATE);
         Set<String> favourites = prefs.getStringSet("favourites_list", new HashSet<>());
         Set<String> newFavourites = new HashSet<>(favourites);
-        
+
         // Store in format: name|lat|lon (same as starred places)
         String entry = name + "|" + lat + "|" + lon;
         newFavourites.add(entry);
-        
+
         prefs.edit().putStringSet("favourites_list", newFavourites).apply();
         Toast.makeText(this, "Saved to favourites!", Toast.LENGTH_SHORT).show();
     }
@@ -1067,7 +1176,7 @@ public class MainActivity extends AppCompatActivity implements
     private void performSearch(String query) {
         // Always hide suggestions when performing search
         hideSearchSuggestions();
-        
+
         Geocoder geocoder = new Geocoder(this, Locale.getDefault());
         try {
             List<Address> addresses = geocoder.getFromLocationName(query, 5); // Get up to 5 results
@@ -1088,30 +1197,30 @@ public class MainActivity extends AppCompatActivity implements
             Toast.makeText(this, "Geocoding failed, please try again", Toast.LENGTH_SHORT).show();
         }
     }
-    
+
     private void performSearchSuggestions(String query) {
         Log.d("SearchSuggestions", "Performing search suggestions for: " + query);
-        
+
         if (query == null || query.trim().isEmpty()) {
             hideSearchSuggestions();
             return;
         }
-        
+
         new Thread(() -> {
             try {
                 Geocoder geocoder = new Geocoder(MainActivity.this, Locale.getDefault());
-                
+
                 // Check if Geocoder is available
                 if (!Geocoder.isPresent()) {
                     Log.e("SearchSuggestions", "Geocoder is not available on this device");
                     runOnUiThread(() -> hideSearchSuggestions());
                     return;
                 }
-                
+
                 List<Address> addresses = geocoder.getFromLocationName(query, 5);
-                
+
                 Log.d("SearchSuggestions", "Query: " + query + ", Found addresses: " + (addresses != null ? addresses.size() : 0));
-                
+
                 runOnUiThread(() -> {
                     if (addresses != null && !addresses.isEmpty()) {
                         searchSuggestions = addresses;
@@ -1128,20 +1237,20 @@ public class MainActivity extends AppCompatActivity implements
             }
         }).start();
     }
-    
+
     private void setupSuggestionDropdown() {
         // Get the ListView from the layout
         suggestionListView = binding.suggestionListView;
-        
+
         // Create a simple drawable for the divider
         android.graphics.drawable.ColorDrawable dividerDrawable = new android.graphics.drawable.ColorDrawable(android.graphics.Color.LTGRAY);
         suggestionListView.setDivider(dividerDrawable);
         suggestionListView.setDividerHeight(1);
-        
+
         // Create adapter
         suggestionAdapter = new android.widget.ArrayAdapter<>(this, android.R.layout.simple_list_item_1);
         suggestionListView.setAdapter(suggestionAdapter);
-        
+
         // Handle item clicks
         suggestionListView.setOnItemClickListener((parent, view, position, id) -> {
             if (position < searchSuggestions.size()) {
@@ -1153,33 +1262,33 @@ public class MainActivity extends AppCompatActivity implements
             }
         });
     }
-    
+
     private void showSearchSuggestions(List<Address> addresses) {
         Log.d("SearchSuggestions", "Showing " + addresses.size() + " suggestions");
         if (suggestionListView == null || suggestionAdapter == null) {
             Log.e("SearchSuggestions", "Suggestion views not initialized");
             return;
         }
-        
+
         searchSuggestions = addresses;
         suggestionAdapter.clear();
-        
+
         for (Address address : addresses) {
             String suggestion = getReadableAddress(address);
             suggestionAdapter.add(suggestion);
             Log.d("SearchSuggestions", "Added suggestion: " + suggestion);
-            
+
             // Debug: Log address details
-            Log.d("SearchSuggestions", "Address details - Locality: " + address.getLocality() + 
-                  ", Country: " + address.getCountryName() + 
-                  ", AddressLine0: " + address.getAddressLine(0));
+            Log.d("SearchSuggestions", "Address details - Locality: " + address.getLocality() +
+                    ", Country: " + address.getCountryName() +
+                    ", AddressLine0: " + address.getAddressLine(0));
         }
-        
+
         suggestionListView.setVisibility(View.VISIBLE);
         isShowingSuggestions = true;
         Log.d("SearchSuggestions", "Suggestion dropdown should now be visible");
     }
-    
+
     private void hideSearchSuggestions() {
         if (suggestionListView != null) {
             suggestionListView.setVisibility(View.GONE);
@@ -1190,7 +1299,7 @@ public class MainActivity extends AppCompatActivity implements
         isShowingSuggestions = false;
         searchSuggestions.clear();
     }
-    
+
     private void showMultipleResultsDialog(List<Address> addresses, String originalQuery) {
         String[] options = new String[addresses.size()];
         for (int i = 0; i < addresses.size(); i++) {
@@ -1203,20 +1312,20 @@ public class MainActivity extends AppCompatActivity implements
                 options[i] = readableAddress;
             }
         }
-        
+
         android.app.AlertDialog.Builder builder = new android.app.AlertDialog.Builder(this);
         builder.setTitle("Multiple locations found for \"" + originalQuery + "\"")
-               .setItems(options, (dialog, which) -> {
-                   selectLocationFromAddress(addresses.get(which), getReadableAddress(addresses.get(which)));
-               })
-               .setNegativeButton("Cancel", null)
-               .show();
+                .setItems(options, (dialog, which) -> {
+                    selectLocationFromAddress(addresses.get(which), getReadableAddress(addresses.get(which)));
+                })
+                .setNegativeButton("Cancel", null)
+                .show();
     }
-    
+
     private void selectLocationFromAddress(Address address, String displayName) {
         // Hide suggestions when location is selected
         hideSearchSuggestions();
-        
+
         GeoPoint point = new GeoPoint(address.getLatitude(), address.getLongitude());
 
         // Center on destination and temporarily disable auto-follow
@@ -1235,10 +1344,10 @@ public class MainActivity extends AppCompatActivity implements
         selectedLocation = point;
         selectedLocationAddress = displayName; // Store the address for starring
         binding.locationInfo.setText(displayName + " • Tap Navigate to start route");
-        
+
         // Enable navigate button when a location is found
         binding.btnNavigate.setEnabled(true);
-        
+
         // Only update other UI elements if we're not already in navigation mode
         if (!isNavigating) {
             binding.btnCancelRoute.setVisibility(View.VISIBLE);  // Show Cancel button to clear location
@@ -1304,7 +1413,7 @@ public class MainActivity extends AppCompatActivity implements
 
         // Enable navigate button when a location is selected
         binding.btnNavigate.setEnabled(true);
-        
+
         // Only update other UI elements if we're not already in navigation mode
         if (!isNavigating) {
             binding.btnCancelRoute.setVisibility(View.VISIBLE);  // Show Cancel button to clear location
@@ -1316,7 +1425,7 @@ public class MainActivity extends AppCompatActivity implements
     public void onLocationUpdate(Location location) {
         Log.d("SpeedAlert", "onLocationUpdate called. Location: " + location);
         Log.d("SpeedAlert", "location.hasSpeed(): " + location.hasSpeed());
-        
+
         // Check if we've reached the destination during navigation
         if (isNavigating && mapManager.isNearDestination()) {
             runOnUiThread(() -> {
@@ -1325,12 +1434,12 @@ public class MainActivity extends AppCompatActivity implements
                 finishJourney();
             });
         }
-        
+
         // Update navigation info during active navigation
         if (isNavigating && currentRouteData != null) {
             updateNavigationInfo();
         }
-        
+
         if (!location.hasSpeed()) {
             Log.d("SpeedAlert", "No speed data in this location update. Skipping speed alert logic.");
             return;
@@ -1464,17 +1573,17 @@ public class MainActivity extends AppCompatActivity implements
                 Location currentLocation = mapManager.getLastKnownLocation();
                 if (currentLocation != null) {
                     float distanceFromLastAlert = 0f;
-                    
+
                     if (lastSpeedAlertLocation != null) {
                         float[] results = new float[1];
                         Location.distanceBetween(
-                            lastSpeedAlertLocation.getLatitude(), lastSpeedAlertLocation.getLongitude(),
-                            currentLocation.getLatitude(), currentLocation.getLongitude(),
-                            results
+                                lastSpeedAlertLocation.getLatitude(), lastSpeedAlertLocation.getLongitude(),
+                                currentLocation.getLatitude(), currentLocation.getLongitude(),
+                                results
                         );
                         distanceFromLastAlert = results[0];
                     }
-                    
+
                     // Alert every 400m while above speed limit
                     if (!hasAlertedSpeedLimit || distanceFromLastAlert >= 400f) {
                         String message = "Please slow down.\nCurrent Speed: " + String.format("%.1f", speedKmh) + " km/h";
@@ -1510,10 +1619,10 @@ public class MainActivity extends AppCompatActivity implements
                 Toast.makeText(this, "Location services are disabled. Please enable GPS and try again.", Toast.LENGTH_LONG).show();
                 return;
             }
-            
+
             // Try to start location updates and show more helpful message
             mapManager.startLocationUpdates();
-            
+
             // Wait a bit and try again automatically
             new Handler().postDelayed(() -> {
                 Location retryLocation = mapManager.getLastKnownLocation();
@@ -1524,15 +1633,15 @@ public class MainActivity extends AppCompatActivity implements
                     Toast.makeText(MainActivity.this, "Still getting location. Please try again in a few seconds.", Toast.LENGTH_SHORT).show();
                 }
             }, 3000); // Wait 3 seconds
-            
+
             Toast.makeText(this, "Getting your current location... Please wait a moment.", Toast.LENGTH_SHORT).show();
             return;
         }
-        
+
         // Proceed with navigation using the available location
         proceedWithNavigation(currentLocation);
     }
-    
+
     private void proceedWithNavigation(Location currentLocation) {
         GeoPoint start = new GeoPoint(currentLocation.getLatitude(), currentLocation.getLongitude());
         GeoPoint end = selectedLocation;
@@ -1546,7 +1655,7 @@ public class MainActivity extends AppCompatActivity implements
                     currentRouteData = routeData;
                     mapManager.drawRoute(routeData.routePoints);
                     showEnhancedRouteSummary(routeData);
-                    
+
                     // Store journey distance for route history
                     journeyDistance = routeData.distance;
                 });
@@ -1563,22 +1672,22 @@ public class MainActivity extends AppCompatActivity implements
     private void showEnhancedRouteSummary(RoutePlanner.RouteData routeData) {
         // Calculate route information
         String timeText = formatTimeForDisplay(routeData.duration);
-        
+
         // Calculate arrival time
         java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat("HH:mm", java.util.Locale.getDefault());
         java.util.Calendar cal = java.util.Calendar.getInstance();
         cal.add(java.util.Calendar.MINUTE, (int) Math.ceil(routeData.duration / 60.0));
         String arrivalTime = sdf.format(cal.getTime());
-        
+
         // Display route summary in the bottom panel
-        String routeSummary = String.format("Route: %.1f km • %s • Arrive @ %s", 
-            routeData.distance / 1000.0, timeText, arrivalTime);
+        String routeSummary = String.format("Route: %.1f km • %s • Arrive @ %s",
+                routeData.distance / 1000.0, timeText, arrivalTime);
         binding.locationInfo.setText(routeSummary);
-        
+
         // Show the "Start Navigation" button
         binding.btnJourney.setVisibility(View.VISIBLE);
         binding.btnJourney.setText("Start Navigation");
-        
+
         // Update UI state
         binding.btnCancelRoute.setVisibility(View.VISIBLE);
         binding.btnNavigate.setVisibility(View.GONE);
@@ -1594,25 +1703,25 @@ public class MainActivity extends AppCompatActivity implements
             isNavigating = true;
             binding.btnJourney.setText("Finish Navigation");
             binding.tvJourneyState.setVisibility(View.GONE); // Hide the redundant message
-            
+
             // Hide search suggestions during navigation
             hideSearchSuggestions();
-            
+
             // Start tracking journey for route history
             journeyStartTime = System.currentTimeMillis();
             journeyStartLocation = mapManager.getLastKnownLocation();
             journeyStartAddress = getAddressFromLocation(journeyStartLocation);
-            
+
             // Store the selected destination
             journeyDestination = selectedLocation;
-            
+
             Log.d("RouteHistory", "Journey started from: " + journeyStartAddress);
-            Log.d("RouteHistory", "Journey destination: " + (journeyDestination != null ? 
-                journeyDestination.getLatitude() + ", " + journeyDestination.getLongitude() : "null"));
-            
+            Log.d("RouteHistory", "Journey destination: " + (journeyDestination != null ?
+                    journeyDestination.getLatitude() + ", " + journeyDestination.getLongitude() : "null"));
+
             // Start turn-by-turn navigation
             mapManager.startNavigation(currentRouteData.navigationSteps);
-            
+
             // Show remaining route info during navigation
             updateNavigationInfo();
         }
@@ -1622,31 +1731,31 @@ public class MainActivity extends AppCompatActivity implements
         isNavigating = false;
         binding.btnJourney.setText("Start Navigation");
         binding.tvJourneyState.setVisibility(View.GONE);
-        
+
         // Hide navigation instruction
         binding.navigationInstruction.setVisibility(View.GONE);
-        
+
         // Search suggestions will be automatically re-enabled since isNavigating = false
-        
+
         // Save journey to route history
         saveJourneyToHistory();
-        
+
         // Stop turn-by-turn navigation
         mapManager.stopNavigation();
-        
+
         // Clear the route from the map
         mapManager.clearRoute();
-        
+
         // Clear the selected location marker
         mapManager.clearMarkers();
-        
+
         // Reset the selected location and route data
         selectedLocation = null;
         currentRouteData = null;
-        
+
         // Clear stored traffic analysis info
         originalLocationInfo = "";
-        
+
         // Reset UI to initial state
         binding.locationInfo.setText("Tap on map to get location");
         binding.btnNavigate.setEnabled(false);
@@ -1654,12 +1763,12 @@ public class MainActivity extends AppCompatActivity implements
         binding.btnCancelRoute.setVisibility(View.GONE);
         binding.btnJourney.setVisibility(View.GONE);
         binding.trafficButtonsLayout.setVisibility(View.GONE);
-        
+
         // Clear search view
         if (binding.searchView != null) {
             binding.searchView.setQuery("", false);
         }
-        
+
         Toast.makeText(this, "Navigation finished", Toast.LENGTH_SHORT).show();
     }
 
@@ -1667,59 +1776,59 @@ public class MainActivity extends AppCompatActivity implements
         if (currentRouteData == null || !isNavigating) {
             return;
         }
-        
+
         // Get current location
         Location currentLocation = mapManager.getLastKnownLocation();
         if (currentLocation == null) {
             return;
         }
-        
+
         // Ensure we're on the UI thread
         if (!isFinishing() && !isDestroyed()) {
-        
-        // Calculate remaining distance to destination
-        double remainingDistance = calculateRemainingDistance(currentLocation);
-        double remainingTime = calculateRemainingTime(remainingDistance);
-        
-        // Calculate estimated arrival time
-        java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat("HH:mm", java.util.Locale.getDefault());
-        java.util.Calendar cal = java.util.Calendar.getInstance();
-        cal.add(java.util.Calendar.MINUTE, (int) (remainingTime / 60.0));
-        String arrivalTime = sdf.format(cal.getTime());
-        
-        // Format time in a user-friendly way
-        String timeText = formatTimeForDisplay(remainingTime);
-        
-        // Format and display the info with arrival time (shorter format)
-        String info = String.format("%.1fkm • %s • %s", 
-            remainingDistance / 1000.0, timeText, arrivalTime);
-        
-        // Only update location info if we're not currently showing traffic analysis
-        String currentText = binding.locationInfo.getText().toString();
-        if (!currentText.contains("Traffic Analysis")) {
-            binding.locationInfo.setText(info);
-        }
-        
-        // Show navigation instruction if available
-        updateNavigationInstruction();
+
+            // Calculate remaining distance to destination
+            double remainingDistance = calculateRemainingDistance(currentLocation);
+            double remainingTime = calculateRemainingTime(remainingDistance);
+
+            // Calculate estimated arrival time
+            java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat("HH:mm", java.util.Locale.getDefault());
+            java.util.Calendar cal = java.util.Calendar.getInstance();
+            cal.add(java.util.Calendar.MINUTE, (int) (remainingTime / 60.0));
+            String arrivalTime = sdf.format(cal.getTime());
+
+            // Format time in a user-friendly way
+            String timeText = formatTimeForDisplay(remainingTime);
+
+            // Format and display the info with arrival time (shorter format)
+            String info = String.format("%.1fkm • %s • %s",
+                    remainingDistance / 1000.0, timeText, arrivalTime);
+
+            // Only update location info if we're not currently showing traffic analysis
+            String currentText = binding.locationInfo.getText().toString();
+            if (!currentText.contains("Traffic Analysis")) {
+                binding.locationInfo.setText(info);
+            }
+
+            // Show navigation instruction if available
+            updateNavigationInstruction();
         }
     }
-    
+
     private void updateNavigationInstruction() {
         if (!isNavigating || mapManager == null) {
             binding.navigationInstruction.setVisibility(View.GONE);
             return;
         }
-        
+
         // Get current navigation step from NavigationOverlay
         try {
             if (mapManager.getNavigationOverlay() != null) {
-                com.example.bottlenex.routing.RoutePlanner.NavigationStep currentStep = 
-                    mapManager.getNavigationOverlay().getCurrentStep();
-                
+                com.example.bottlenex.routing.RoutePlanner.NavigationStep currentStep =
+                        mapManager.getNavigationOverlay().getCurrentStep();
+
                 if (currentStep != null) {
-                    String instruction = currentStep.instruction + " • " + 
-                        formatDistance(currentStep.distance);
+                    String instruction = currentStep.instruction + " • " +
+                            formatDistance(currentStep.distance);
                     binding.navigationInstruction.setText(instruction);
                     binding.navigationInstruction.setVisibility(View.VISIBLE);
                 } else {
@@ -1733,7 +1842,7 @@ public class MainActivity extends AppCompatActivity implements
             binding.navigationInstruction.setVisibility(View.GONE);
         }
     }
-    
+
     private String formatDistance(double distanceMeters) {
         if (distanceMeters >= 1000) {
             return String.format("%.1f km", distanceMeters / 1000.0);
@@ -1744,43 +1853,43 @@ public class MainActivity extends AppCompatActivity implements
             return (int) distanceMeters + "m";
         }
     }
-    
+
     private double calculateRemainingDistance(Location currentLocation) {
-        if (currentRouteData == null || currentRouteData.navigationSteps == null || 
-            currentRouteData.navigationSteps.isEmpty()) {
+        if (currentRouteData == null || currentRouteData.navigationSteps == null ||
+                currentRouteData.navigationSteps.isEmpty()) {
             return 0;
         }
-        
+
         // Get the last step (destination)
         RoutePlanner.NavigationStep destination = currentRouteData.navigationSteps.get(
-            currentRouteData.navigationSteps.size() - 1);
-        
+                currentRouteData.navigationSteps.size() - 1);
+
         float[] results = new float[1];
         Location.distanceBetween(
-            currentLocation.getLatitude(), currentLocation.getLongitude(),
-            destination.location.getLatitude(), destination.location.getLongitude(),
-            results
+                currentLocation.getLatitude(), currentLocation.getLongitude(),
+                destination.location.getLatitude(), destination.location.getLongitude(),
+                results
         );
-        
+
         return results[0];
     }
-    
+
     private double calculateRemainingTime(double remainingDistance) {
         if (currentRouteData == null) {
             return 0;
         }
-        
+
         // Calculate time based on original route speed
         double originalSpeed = currentRouteData.distance / currentRouteData.duration; // m/s
         return remainingDistance / originalSpeed; // seconds
     }
-    
+
     private String formatTimeForDisplay(double timeInSeconds) {
         // Always show in minutes, minimum 1 minute
         int minutes = Math.max(1, (int) Math.ceil(timeInSeconds / 60.0));
         return minutes + " min";
     }
-    
+
     private void preserveNavigationState() {
         // If we're currently navigating, make sure navigation info is displayed
         // Only preserve state if we have valid route data and are actually navigating
@@ -1793,13 +1902,13 @@ public class MainActivity extends AppCompatActivity implements
             selectedLocation = null;
         }
     }
-    
+
     private void getLocationAddress(GeoPoint point) {
         // Don't update location info if we're currently navigating
         if (isNavigating) {
             return;
         }
-        
+
         Geocoder geocoder = new Geocoder(this, Locale.getDefault());
         try {
             List<Address> addresses = geocoder.getFromLocation(point.getLatitude(), point.getLongitude(), 1);
@@ -1820,10 +1929,10 @@ public class MainActivity extends AppCompatActivity implements
             binding.locationInfo.setText("Location Selected • Tap Navigate to start route");
         }
     }
-    
+
     private String getReadableAddress(Address address) {
         StringBuilder readableAddress = new StringBuilder();
-        
+
         // First, check if we have a meaningful address line (for manually created addresses)
         if (address.getAddressLine(0) != null && !address.getAddressLine(0).trim().isEmpty()) {
             String addressLine = address.getAddressLine(0).trim();
@@ -1832,27 +1941,27 @@ public class MainActivity extends AppCompatActivity implements
                 readableAddress.append(addressLine);
             }
         }
-        
+
         // If we don't have a meaningful address line, try to build from components
         if (readableAddress.length() == 0) {
             if (address.getThoroughfare() != null) {
                 readableAddress.append(address.getThoroughfare()); // Street name
             }
-            
+
             if (address.getSubThoroughfare() != null) {
                 if (readableAddress.length() > 0) {
                     readableAddress.append(", ");
                 }
                 readableAddress.append(address.getSubThoroughfare()); // Street number
             }
-            
+
             if (address.getSubLocality() != null) {
                 if (readableAddress.length() > 0) {
                     readableAddress.append(", ");
                 }
                 readableAddress.append(address.getSubLocality()); // Neighborhood
             }
-            
+
             if (address.getLocality() != null) {
                 if (readableAddress.length() > 0) {
                     readableAddress.append(", ");
@@ -1860,38 +1969,38 @@ public class MainActivity extends AppCompatActivity implements
                 readableAddress.append(address.getLocality()); // City
             }
         }
-        
+
         // If still empty, use a generic message
         if (readableAddress.length() == 0) {
             readableAddress.append("Selected Location");
         }
-        
+
         return readableAddress.toString();
     }
-    
+
     private void cancelRoute() {
         // Clear the route from the map
         mapManager.clearRoute();
-        
+
         // Stop navigation if active
         if (isNavigating) {
             mapManager.stopNavigation();
         }
-        
+
         // Hide navigation instruction
         binding.navigationInstruction.setVisibility(View.GONE);
-        
+
         // Clear the selected location marker
         mapManager.clearMarkers();
-        
+
         // Reset the selected location
         selectedLocation = null;
         selectedLocationAddress = ""; // Clear the stored address
         currentRouteData = null;
-        
+
         // Clear stored traffic analysis info
         originalLocationInfo = "";
-        
+
         // Reset UI to initial state
         binding.locationInfo.setText("Tap on map to get location");
         binding.btnNavigate.setEnabled(false);
@@ -1900,12 +2009,12 @@ public class MainActivity extends AppCompatActivity implements
         binding.btnJourney.setVisibility(View.GONE);
         binding.tvJourneyState.setVisibility(View.GONE);
         binding.trafficButtonsLayout.setVisibility(View.GONE);
-        
+
         // Clear search view
         if (binding.searchView != null) {
             binding.searchView.setQuery("", false);
         }
-        
+
         Toast.makeText(this, "Route cancelled", Toast.LENGTH_SHORT).show();
     }
 
@@ -1916,13 +2025,13 @@ public class MainActivity extends AppCompatActivity implements
         if (checkPermissions()) {
             mapManager.startLocationUpdates();
         }
-        
+
         // Restore navigation state if we were navigating
         preserveNavigationState();
-        
+
         // Verify starred places synchronization when resuming
         verifyStarredPlacesSynchronization();
-        
+
         // Verify favourites synchronization when resuming
         verifyFavouritesSynchronization();
     }
@@ -1937,7 +2046,7 @@ public class MainActivity extends AppCompatActivity implements
     protected void onDestroy() {
         super.onDestroy();
         mapManager.stopLocationUpdates();
-        
+
         // Clean up search handler
         if (searchHandler != null && searchRunnable != null) {
             searchHandler.removeCallbacks(searchRunnable);
@@ -1946,7 +2055,7 @@ public class MainActivity extends AppCompatActivity implements
         if (trafficUpdateHandler != null) {
             trafficUpdateHandler.removeCallbacks(trafficUpdateRunnable);
         }
-        
+
         // Unregister broadcast receiver
         try {
             unregisterReceiver(starredPlacesUpdateReceiver);
@@ -1985,7 +2094,7 @@ public class MainActivity extends AppCompatActivity implements
     // Traffic Prediction Methods
     private void toggleTrafficOverlay() {
         Log.d("TrafficOverlay", "toggleTrafficOverlay called, current state: " + showTrafficOverlay);
-        
+
         if (!showTrafficOverlay) {
             // Show time picker dialog when enabling traffic overlay
             showTrafficTimePickerDialog();
@@ -1996,46 +2105,46 @@ public class MainActivity extends AppCompatActivity implements
             disableTrafficOverlay();
         }
     }
-    
+
     private void showTrafficTimePickerDialog() {
         // Create a custom dialog with time picker options
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
         builder.setTitle("Select Traffic Prediction Time");
-        
+
         // Create custom layout for the dialog
         View dialogView = getLayoutInflater().inflate(R.layout.dialog_traffic_time_picker, null);
         builder.setView(dialogView);
-        
+
         // Get references to dialog elements
         RadioButton rbCurrentTime = dialogView.findViewById(R.id.rbCurrentTime);
         RadioButton rbCustomTime = dialogView.findViewById(R.id.rbCustomTime);
         TimePicker timePicker = dialogView.findViewById(R.id.timePicker);
-        
+
         // Initially hide time picker
         timePicker.setVisibility(View.GONE);
-        
+
         // Show/hide time picker based on radio button selection
         rbCurrentTime.setOnCheckedChangeListener((buttonView, isChecked) -> {
             if (isChecked) {
                 timePicker.setVisibility(View.GONE);
             }
         });
-        
+
         rbCustomTime.setOnCheckedChangeListener((buttonView, isChecked) -> {
             if (isChecked) {
                 timePicker.setVisibility(View.VISIBLE);
             }
         });
-        
+
         // Set up dialog buttons
         builder.setPositiveButton("Predict", (dialog, which) -> {
             if (rbCurrentTime.isChecked()) {
                 // Use current time
                 selectedTrafficTime = null;
-                
+
                 // Clear the custom time in MapManager
                 mapManager.setCustomTrafficTime(null);
-                
+
                 enableTrafficOverlay();
                 Toast.makeText(this, "Predicting traffic for current time", Toast.LENGTH_SHORT).show();
             } else if (rbCustomTime.isChecked()) {
@@ -2046,31 +2155,31 @@ public class MainActivity extends AppCompatActivity implements
                 selectedTime.set(Calendar.MINUTE, timePicker.getMinute());
                 selectedTime.set(Calendar.SECOND, 0);
                 selectedTime.set(Calendar.MILLISECOND, 0);
-                
+
                 // If selected time is in the past, add a day
                 if (selectedTime.before(now)) {
                     selectedTime.add(Calendar.DAY_OF_YEAR, 1);
                 }
-                
+
                 selectedTrafficTime = selectedTime;
-                
+
                 // Set the custom time in MapManager so TrafficOverlay can use it
                 mapManager.setCustomTrafficTime(selectedTime);
-                
+
                 enableTrafficOverlay();
-                
+
                 String timeStr = String.format("%02d:%02d", selectedTime.get(Calendar.HOUR_OF_DAY), selectedTime.get(Calendar.MINUTE));
                 Toast.makeText(this, "Predicting traffic for " + timeStr, Toast.LENGTH_SHORT).show();
             }
         });
-        
+
         builder.setNegativeButton("Cancel", (dialog, which) -> {
             dialog.dismiss();
         });
-        
+
         // Set current time as default
         rbCurrentTime.setChecked(true);
-        
+
         AlertDialog dialog = builder.create();
         dialog.show();
     }
@@ -2079,41 +2188,41 @@ public class MainActivity extends AppCompatActivity implements
         // Create a custom dialog with time picker options
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
         builder.setTitle("Select Congestion Analysis Time");
-        
+
         // Create custom layout for the dialog
         View dialogView = getLayoutInflater().inflate(R.layout.dialog_traffic_time_picker, null);
         builder.setView(dialogView);
-        
+
         // Get references to dialog elements
         RadioButton rbCurrentTime = dialogView.findViewById(R.id.rbCurrentTime);
         RadioButton rbCustomTime = dialogView.findViewById(R.id.rbCustomTime);
         TimePicker timePicker = dialogView.findViewById(R.id.timePicker);
-        
+
         // Initially hide time picker
         timePicker.setVisibility(View.GONE);
-        
+
         // Show/hide time picker based on radio button selection
         rbCurrentTime.setOnCheckedChangeListener((buttonView, isChecked) -> {
             if (isChecked) {
                 timePicker.setVisibility(View.GONE);
             }
         });
-        
+
         rbCustomTime.setOnCheckedChangeListener((buttonView, isChecked) -> {
             if (isChecked) {
                 timePicker.setVisibility(View.VISIBLE);
             }
         });
-        
+
         // Set up dialog buttons
         builder.setPositiveButton("Analyze Congestion", (dialog, which) -> {
             if (rbCurrentTime.isChecked()) {
                 // Use current time
                 selectedTrafficTime = null;
-                
+
                 // Clear the custom time in MapManager
                 mapManager.setCustomTrafficTime(null);
-                
+
                 showTrafficPredictionForRoute();
                 Toast.makeText(this, "Analyzing congestion for current time", Toast.LENGTH_SHORT).show();
             } else if (rbCustomTime.isChecked()) {
@@ -2124,49 +2233,49 @@ public class MainActivity extends AppCompatActivity implements
                 selectedTime.set(Calendar.MINUTE, timePicker.getMinute());
                 selectedTime.set(Calendar.SECOND, 0);
                 selectedTime.set(Calendar.MILLISECOND, 0);
-                
+
                 // If selected time is in the past, add a day
                 if (selectedTime.before(now)) {
                     selectedTime.add(Calendar.DAY_OF_YEAR, 1);
                 }
-                
+
                 selectedTrafficTime = selectedTime;
-                
+
                 // Set the custom time in MapManager so TrafficOverlay can use it
                 mapManager.setCustomTrafficTime(selectedTime);
-                
+
                 showTrafficPredictionForRoute();
-                
+
                 String timeStr = String.format("%02d:%02d", selectedTime.get(Calendar.HOUR_OF_DAY), selectedTime.get(Calendar.MINUTE));
                 Toast.makeText(this, "Analyzing congestion for " + timeStr, Toast.LENGTH_SHORT).show();
             }
         });
-        
+
         builder.setNegativeButton("Cancel", (dialog, which) -> {
             dialog.dismiss();
         });
-        
+
         // Set current time as default
         rbCurrentTime.setChecked(true);
-        
+
         AlertDialog dialog = builder.create();
         dialog.show();
     }
-    
+
     private void enableTrafficOverlay() {
         showTrafficOverlay = true;
         mapManager.showTrafficOverlay(true);
         startTrafficUpdates();
         Log.d("TrafficOverlay", "Traffic overlay enabled");
         mapManager.forceRefreshTrafficOverlay();
-        
+
         // Additional debugging
         Log.d("TrafficOverlay", "MapView null check: " + (binding.mapView == null));
         if (binding.mapView != null) {
             binding.mapView.getWidth();
             binding.mapView.getHeight();
         }
-        
+
         // Force map refresh to ensure overlay is visible
         if (binding.mapView != null) {
             binding.mapView.invalidate();
@@ -2176,13 +2285,13 @@ public class MainActivity extends AppCompatActivity implements
             Log.w("TrafficOverlay", "MapView is null, cannot invalidate");
         }
     }
-    
+
     private void disableTrafficOverlay() {
         mapManager.showTrafficOverlay(false);
         stopTrafficUpdates();
         Toast.makeText(this, "Traffic overlay disabled", Toast.LENGTH_SHORT).show();
         Log.d("TrafficOverlay", "Traffic overlay disabled");
-        
+
         // Force map refresh to ensure overlay is hidden
         if (binding.mapView != null) {
             binding.mapView.invalidate();
@@ -2192,17 +2301,17 @@ public class MainActivity extends AppCompatActivity implements
             Log.w("TrafficOverlay", "MapView is null, cannot invalidate");
         }
     }
-    
+
     private void startTrafficUpdates() {
         // Update traffic predictions every 5 minutes
         trafficUpdateRunnable = new Runnable() {
             @Override
             public void run() {
                 if (showTrafficOverlay) {
-                    Log.d("TrafficUpdates", "Updating traffic predictions, selectedTrafficTime: " + 
-                          (selectedTrafficTime != null ? 
-                           String.format("%02d:%02d", selectedTrafficTime.get(Calendar.HOUR_OF_DAY), selectedTrafficTime.get(Calendar.MINUTE)) : 
-                           "null (current time)"));
+                    Log.d("TrafficUpdates", "Updating traffic predictions, selectedTrafficTime: " +
+                            (selectedTrafficTime != null ?
+                                    String.format("%02d:%02d", selectedTrafficTime.get(Calendar.HOUR_OF_DAY), selectedTrafficTime.get(Calendar.MINUTE)) :
+                                    "null (current time)"));
                     mapManager.updateTrafficPredictions();
                     trafficUpdateHandler.postDelayed(this, 5 * 60 * 1000); // 5 minutes
                 }
@@ -2210,22 +2319,22 @@ public class MainActivity extends AppCompatActivity implements
         };
         trafficUpdateHandler.post(trafficUpdateRunnable);
     }
-    
+
     private void stopTrafficUpdates() {
         if (trafficUpdateRunnable != null) {
             trafficUpdateHandler.removeCallbacks(trafficUpdateRunnable);
         }
     }
-    
+
     private String originalLocationInfo = ""; // Store original location info
     private TensorFlowTrafficPredictor mlPredictor; // ML-based traffic predictor
-    
+
     private void showTrafficPredictionForRoute() {
         if (currentRouteData == null || currentRouteData.routePoints == null) {
             Toast.makeText(this, "No route selected", Toast.LENGTH_SHORT).show();
             return;
         }
-        
+
         // Check if we're currently showing traffic info - if so, restore original
         String currentText = binding.locationInfo.getText().toString();
         if (currentText.contains("Traffic Analysis")) {
@@ -2233,58 +2342,58 @@ public class MainActivity extends AppCompatActivity implements
             Toast.makeText(this, "Route info restored", Toast.LENGTH_SHORT).show();
             return;
         }
-        
+
         // Store original location info if not already stored
         if (originalLocationInfo.isEmpty()) {
             originalLocationInfo = binding.locationInfo.getText().toString();
         }
-        
+
         // Analyze traffic along the route
         StringBuilder trafficInfo = new StringBuilder();
         trafficInfo.append("Traffic Analysis\n\n");
-        
+
         // Check traffic at start, middle, and end points using ML predictions
         List<GeoPoint> routePoints = currentRouteData.routePoints;
         if (!routePoints.isEmpty()) {
             // Use ML predictor for dynamic traffic analysis
             String startTraffic = getMLTrafficPrediction(routePoints.get(0), 1);
             String endTraffic = getMLTrafficPrediction(routePoints.get(routePoints.size() - 1), 2);
-            
+
             // Get traffic level colors
             int startColor = getTrafficLevelColor(startTraffic);
             int endColor = getTrafficLevelColor(endTraffic);
-            
+
             trafficInfo.append("Start: ").append(startTraffic).append(" Traffic\n");
             trafficInfo.append("End: ").append(endTraffic).append(" Traffic\n");
-            
+
             // Check middle point if route is long enough
             if (routePoints.size() > 2) {
                 String middleTraffic = getMLTrafficPrediction(routePoints.get(routePoints.size() / 2), 3);
                 trafficInfo.append("Middle: ").append(middleTraffic).append(" Traffic\n");
             }
-            
+
             // Add overall route assessment
             String overallTraffic = getOverallRouteTraffic(startTraffic, endTraffic);
             trafficInfo.append("\nOverall Route: ").append(overallTraffic).append(" Traffic");
-            
+
             // Add instruction to restore original view
             trafficInfo.append("\n\nTap 'Traffic Analysis' again to return");
         }
-        
+
         // Display traffic info in the existing location info area
         binding.locationInfo.setText(trafficInfo.toString());
-        
+
         // Show a brief toast to confirm the action
         Toast.makeText(this, "Traffic analysis displayed", Toast.LENGTH_SHORT).show();
     }
-    
+
     private void restoreOriginalLocationInfo() {
         if (!originalLocationInfo.isEmpty()) {
             binding.locationInfo.setText(originalLocationInfo);
             originalLocationInfo = ""; // Clear stored info
         }
     }
-    
+
     private String getOverallRouteTraffic(String startTraffic, String endTraffic) {
         // Simple logic to determine overall route traffic
         if (startTraffic.equals("High") || endTraffic.equals("High")) {
@@ -2295,7 +2404,7 @@ public class MainActivity extends AppCompatActivity implements
             return "Low";
         }
     }
-    
+
     private int getTrafficLevelColor(String trafficLevel) {
         switch (trafficLevel) {
             case "Low":
@@ -2308,7 +2417,7 @@ public class MainActivity extends AppCompatActivity implements
                 return 0xFF4CAF50; // Default green
         }
     }
-    
+
     /**
      * Get ML-based traffic prediction for a location
      */
@@ -2319,9 +2428,9 @@ public class MainActivity extends AppCompatActivity implements
                 if (selectedTrafficTime != null) {
                     // Use selected time for prediction
                     prediction = mlPredictor.getTrafficPredictionForTime(junctionNumber, selectedTrafficTime);
-                    Log.d("TrafficAnalysis", "ML Prediction for junction " + junctionNumber + " at " + 
-                          String.format("%02d:%02d", selectedTrafficTime.get(Calendar.HOUR_OF_DAY), selectedTrafficTime.get(Calendar.MINUTE)) + 
-                          ": " + prediction);
+                    Log.d("TrafficAnalysis", "ML Prediction for junction " + junctionNumber + " at " +
+                            String.format("%02d:%02d", selectedTrafficTime.get(Calendar.HOUR_OF_DAY), selectedTrafficTime.get(Calendar.MINUTE)) +
+                            ": " + prediction);
                 } else {
                     // Use current time for prediction
                     prediction = mlPredictor.getCurrentTrafficPrediction(junctionNumber);
@@ -2337,7 +2446,7 @@ public class MainActivity extends AppCompatActivity implements
             return getFallbackTrafficPrediction(junctionNumber);
         }
     }
-    
+
     /**
      * Fallback traffic prediction when ML is not available
      */
@@ -2348,9 +2457,9 @@ public class MainActivity extends AppCompatActivity implements
         } else {
             cal = java.util.Calendar.getInstance();
         }
-        
+
         int hour = cal.get(Calendar.HOUR_OF_DAY);
-        
+
         // Simple time-based logic
         if (hour >= 7 && hour <= 9) { // Morning peak
             return junctionNumber % 2 == 0 ? "High" : "Medium";
@@ -2383,9 +2492,9 @@ public class MainActivity extends AppCompatActivity implements
         if (journeyDistance == 0.0) {
             float[] results = new float[1];
             Location.distanceBetween(
-                journeyStartLocation.getLatitude(), journeyStartLocation.getLongitude(),
-                journeyDestination.getLatitude(), journeyDestination.getLongitude(),
-                results
+                    journeyStartLocation.getLatitude(), journeyStartLocation.getLongitude(),
+                    journeyDestination.getLatitude(), journeyDestination.getLongitude(),
+                    results
             );
             journeyDistance = results[0];
         }
@@ -2393,24 +2502,24 @@ public class MainActivity extends AppCompatActivity implements
         // Format times
         java.text.SimpleDateFormat timeFormat = new java.text.SimpleDateFormat("HH:mm", Locale.getDefault());
         java.text.SimpleDateFormat dateFormat = new java.text.SimpleDateFormat("dd/MM/yyyy", Locale.getDefault());
-        
+
         String startTime = timeFormat.format(new java.util.Date(journeyStartTime));
         String endTime = timeFormat.format(new java.util.Date(journeyEndTime));
         String date = dateFormat.format(new java.util.Date(journeyStartTime));
 
         // Create route history object
         RouteHistory routeHistory = new RouteHistory(
-            journeyStartLocation.getLatitude(),
-            journeyStartLocation.getLongitude(),
-            journeyDestination.getLatitude(),
-            journeyDestination.getLongitude(),
-            journeyStartAddress,
-            journeyEndAddress,
-            journeyDistance,
-            durationSeconds,
-            startTime,
-            endTime,
-            date
+                journeyStartLocation.getLatitude(),
+                journeyStartLocation.getLongitude(),
+                journeyDestination.getLatitude(),
+                journeyDestination.getLongitude(),
+                journeyStartAddress,
+                journeyEndAddress,
+                journeyDistance,
+                durationSeconds,
+                startTime,
+                endTime,
+                date
         );
 
         // save to db
@@ -2440,7 +2549,7 @@ public class MainActivity extends AppCompatActivity implements
         if (requestCode == REQUEST_CODE_BOOKMARK && resultCode == RESULT_OK && data != null) {
             String action = data.getStringExtra("action");
             Log.d("MainActivity", "Received bookmark result with action: " + action);
-            
+
             if ("deleted".equals(action)) {
                 // Handle individual deletion - refresh map immediately
                 String deletedEntry = data.getStringExtra("deleted_entry");
@@ -2460,7 +2569,7 @@ public class MainActivity extends AppCompatActivity implements
                 refreshStarredPlacesOnMap();
                 // Verify synchronization after immediate deletion
                 verifyStarredPlacesSynchronization();
-                
+
             } else if ("deleted_all".equals(action)) {
                 // Handle bulk deletion - clear all starred markers immediately
                 Log.d("StarredPlaces", "Received bulk deletion result");
@@ -2471,7 +2580,7 @@ public class MainActivity extends AppCompatActivity implements
                 Log.d("StarredPlaces", "Immediately cleared all starred markers");
                 // Verify synchronization after bulk deletion
                 verifyStarredPlacesSynchronization();
-                
+
             } else if ("selected".equals(action)) {
                 // Handle selection of a starred place
                 String name = data.getStringExtra("starred_name");
@@ -2493,16 +2602,16 @@ public class MainActivity extends AppCompatActivity implements
                     marker.setTitle("Starred: " + name);
                     Drawable icon = getResources().getDrawable(R.drawable.star);
                     marker.setIcon(icon);
-                    
+
                     // Add click listener for navigation
                     addStarredMarkerClickListener(marker, name, lat, lon);
-                    
+
                     binding.mapView.getOverlays().add(marker);
 
                     binding.mapView.invalidate();
 
                     binding.locationInfo.setText(String.format("Starred Place: %s\nLat: %.6f, Lon: %.6f", name, lat, lon));
-                    
+
                     // Enable navigate button when a starred place is selected
                     binding.btnNavigate.setEnabled(true);
 
@@ -2516,39 +2625,39 @@ public class MainActivity extends AppCompatActivity implements
 
                 if (name != null && lat != 0 && lon != 0) {
                     GeoPoint point = new GeoPoint(lat, lon);
-                    
+
                     // Set the selected location to the starred place
                     selectedLocation = point;
                     selectedLocationAddress = name;
-                    
+
                     // Center the map on the starred place
                     binding.mapView.getController().setZoom(15.0);
                     binding.mapView.getController().setCenter(point);
-                    
+
                     // Clear existing markers and load starred places
                     mapManager.clearMarkers();
                     loadStarredPlaces();
-                    
+
                     // Add a marker for the starred place
                     Marker marker = new Marker(binding.mapView);
                     marker.setPosition(point);
                     marker.setTitle("Starred: " + name);
                     Drawable icon = getResources().getDrawable(R.drawable.star);
                     marker.setIcon(icon);
-                    
+
                     // Add click listener for navigation
                     addStarredMarkerClickListener(marker, name, lat, lon);
-                    
+
                     binding.mapView.getOverlays().add(marker);
-                    
+
                     binding.mapView.invalidate();
-                    
+
                     // Update location info
                     binding.locationInfo.setText(String.format("Starred Place: %s\nLat: %.6f, Lon: %.6f", name, lat, lon));
-                    
+
                     // Enable navigate button
                     binding.btnNavigate.setEnabled(true);
-                    
+
                     // Automatically start navigation
                     onNavigateClicked();
                 }
@@ -2560,39 +2669,39 @@ public class MainActivity extends AppCompatActivity implements
 
                 if (name != null && lat != 0 && lon != 0) {
                     GeoPoint point = new GeoPoint(lat, lon);
-                    
+
                     // Set the selected location to the favourite place
                     selectedLocation = point;
                     selectedLocationAddress = name;
-                    
+
                     // Center the map on the favourite place
                     binding.mapView.getController().setZoom(15.0);
                     binding.mapView.getController().setCenter(point);
-                    
+
                     // Clear existing markers and load favourites
                     mapManager.clearMarkers();
                     loadFavourites();
-                    
+
                     // Add a marker for the favourite place
                     Marker marker = new Marker(binding.mapView);
                     marker.setPosition(point);
                     marker.setTitle("Favourite: " + name);
                     Drawable icon = getResources().getDrawable(R.drawable.favourite);
                     marker.setIcon(icon);
-                    
+
                     // Add click listener for navigation
                     addFavouriteMarkerClickListener(marker, name, lat, lon);
-                    
+
                     binding.mapView.getOverlays().add(marker);
-                    
+
                     binding.mapView.invalidate();
-                    
+
                     // Update location info
                     binding.locationInfo.setText(String.format("Favourite Place: %s\nLat: %.6f, Lon: %.6f", name, lat, lon));
-                    
+
                     // Enable navigate button
                     binding.btnNavigate.setEnabled(true);
-                    
+
                     // Automatically start navigation
                     onNavigateClicked();
                 }
@@ -2616,7 +2725,7 @@ public class MainActivity extends AppCompatActivity implements
                 refreshFavouritesOnMap();
                 // Verify synchronization after immediate deletion
                 verifyFavouritesSynchronization();
-                
+
             } else if ("deleted_all_favourites".equals(action)) {
                 // Handle bulk deletion - clear all favourite markers immediately
                 Log.d("Favourites", "Processing bulk favourite deletion");
@@ -2628,6 +2737,45 @@ public class MainActivity extends AppCompatActivity implements
                 Log.d("Favourites", "Immediately cleared all favourite markers");
                 // Verify synchronization after bulk deletion
                 verifyFavouritesSynchronization();
+            } else if ("togo_navigate".equals(action)) {
+                // Handle navigation to a To Go place
+                String placeName = data.getStringExtra("togo_name");
+                double lat = data.getDoubleExtra("togo_lat", 0);
+                double lon = data.getDoubleExtra("togo_lon", 0);
+
+                if (placeName != null && lat != 0 && lon != 0) {
+                    GeoPoint point = new GeoPoint(lat, lon);
+
+                    // Set the selected location to the To Go place
+                    selectedLocation = point;
+                    selectedLocationAddress = placeName;
+
+                    // Center the map on the To Go place
+                    binding.mapView.getController().setZoom(15.0);
+                    binding.mapView.getController().setCenter(point);
+
+                    // Clear existing markers
+                    mapManager.clearMarkers();
+
+                    // Add a marker for the To Go place
+                    Marker marker = new Marker(binding.mapView);
+                    marker.setPosition(point);
+                    marker.setTitle("To Go: " + placeName);
+                    Drawable icon = getResources().getDrawable(R.drawable.bookmark);
+                    marker.setIcon(icon);
+
+                    binding.mapView.getOverlays().add(marker);
+                    binding.mapView.invalidate();
+
+                    // Update location info
+                    binding.locationInfo.setText(String.format("To Go Place: %s\nLat: %.6f, Lon: %.6f", placeName, lat, lon));
+
+                    // Enable navigate button
+                    binding.btnNavigate.setEnabled(true);
+
+                    // Automatically start navigation
+                    onNavigateClicked();
+                }
             } else {
                 // Fallback for backward compatibility
                 String name = data.getStringExtra("starred_name");
@@ -2649,16 +2797,16 @@ public class MainActivity extends AppCompatActivity implements
                     marker.setTitle("Starred: " + name);
                     Drawable icon = getResources().getDrawable(R.drawable.star);
                     marker.setIcon(icon);
-                    
+
                     // Add click listener for navigation
                     addStarredMarkerClickListener(marker, name, lat, lon);
-                    
+
                     binding.mapView.getOverlays().add(marker);
 
                     binding.mapView.invalidate();
 
                     binding.locationInfo.setText(String.format("Starred Place: %s\nLat: %.6f, Lon: %.6f", name, lat, lon));
-                    
+
                     // Enable navigate button when a starred place is selected
                     binding.btnNavigate.setEnabled(true);
 
@@ -2680,11 +2828,11 @@ public class MainActivity extends AppCompatActivity implements
      */
     private List<String> getFavouritesOnMap() {
         List<String> favouritesOnMap = new ArrayList<>();
-        
+
         if (binding.mapView == null) {
             return favouritesOnMap;
         }
-        
+
         List<Overlay> overlays = binding.mapView.getOverlays();
         for (Overlay overlay : overlays) {
             if (overlay instanceof Marker) {
@@ -2695,7 +2843,7 @@ public class MainActivity extends AppCompatActivity implements
                 }
             }
         }
-        
+
         return favouritesOnMap;
     }
 }

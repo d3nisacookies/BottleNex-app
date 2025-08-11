@@ -58,11 +58,23 @@ public class Bookmark extends AppCompatActivity {
                 finish();
 
             } else if (requestCode == REQUEST_CODE_TOGO) {
-                String selectedPlaceName = data.getStringExtra("selected_place_name");
-                if (selectedPlaceName != null) {
-                    resultIntent.putExtra("selected_location", selectedPlaceName);
+                String action = data.getStringExtra("action");
+                if ("togo_navigate".equals(action)) {
+                    // Pass navigation data from ToGoPlacesActivity
+                    resultIntent.putExtra("action", "togo_navigate");
+                    resultIntent.putExtra("togo_name", data.getStringExtra("togo_name"));
+                    resultIntent.putExtra("togo_lat", data.getDoubleExtra("togo_lat", 0));
+                    resultIntent.putExtra("togo_lon", data.getDoubleExtra("togo_lon", 0));
                     setResult(RESULT_OK, resultIntent);
                     finish();
+                } else {
+                    // Handle just selection (backward compatibility)
+                    String selectedPlaceName = data.getStringExtra("selected_place_name");
+                    if (selectedPlaceName != null) {
+                        resultIntent.putExtra("selected_location", selectedPlaceName);
+                        setResult(RESULT_OK, resultIntent);
+                        finish();
+                    }
                 }
             }
         }
