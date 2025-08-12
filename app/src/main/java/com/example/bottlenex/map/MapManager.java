@@ -520,6 +520,11 @@ public class MapManager {
     public void startNavigation(List<RoutePlanner.NavigationStep> navigationSteps) {
         try {
             if (navigationOverlay != null) {
+                Log.d("MapManager", "startNavigation: Setting " + (navigationSteps != null ? navigationSteps.size() : 0) + " navigation steps");
+                if (navigationSteps != null && !navigationSteps.isEmpty()) {
+                    RoutePlanner.NavigationStep lastStep = navigationSteps.get(navigationSteps.size() - 1);
+                    Log.d("MapManager", "startNavigation: Last step destination: " + lastStep.location.getLatitude() + ", " + lastStep.location.getLongitude());
+                }
                 navigationOverlay.setNavigationSteps(navigationSteps);
                 mapView.invalidate();
             }
@@ -637,6 +642,19 @@ public class MapManager {
     
     public NavigationOverlay getNavigationOverlay() {
         return navigationOverlay;
+    }
+    
+    public void updateNavigationSteps(List<RoutePlanner.NavigationStep> navigationSteps) {
+        if (navigationOverlay != null && navigationSteps != null) {
+            Log.d("MapManager", "updateNavigationSteps: Setting " + navigationSteps.size() + " navigation steps");
+            if (!navigationSteps.isEmpty()) {
+                RoutePlanner.NavigationStep lastStep = navigationSteps.get(navigationSteps.size() - 1);
+                Log.d("MapManager", "Last step destination: " + lastStep.location.getLatitude() + ", " + lastStep.location.getLongitude());
+            }
+            navigationOverlay.setNavigationSteps(navigationSteps);
+        } else {
+            Log.w("MapManager", "updateNavigationSteps: navigationOverlay or navigationSteps is null");
+        }
     }
     
     public TrafficOverlay getTrafficOverlay() {

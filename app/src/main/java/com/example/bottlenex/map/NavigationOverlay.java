@@ -169,11 +169,13 @@ public class NavigationOverlay extends Overlay {
     
     public boolean isNearDestination() {
         if (navigationSteps == null || navigationSteps.isEmpty()) {
+            Log.d("NavigationOverlay", "isNearDestination: No navigation steps");
             return false;
         }
         
         RoutePlanner.NavigationStep lastStep = navigationSteps.get(navigationSteps.size() - 1);
         if (currentLocation == null || lastStep == null) {
+            Log.d("NavigationOverlay", "isNearDestination: No current location or last step");
             return false;
         }
         
@@ -184,7 +186,12 @@ public class NavigationOverlay extends Overlay {
             results
         );
         
-        return results[0] < 50; // Within 50 meters of destination
+        boolean isNear = results[0] < 50; // Within 50 meters of destination
+        Log.d("NavigationOverlay", "isNearDestination: Distance to last step = " + results[0] + "m, isNear = " + isNear);
+        Log.d("NavigationOverlay", "Last step location: " + lastStep.location.getLatitude() + ", " + lastStep.location.getLongitude());
+        Log.d("NavigationOverlay", "Current location: " + currentLocation.getLatitude() + ", " + currentLocation.getLongitude());
+        
+        return isNear;
     }
     
     private String formatDistance(double distanceMeters) {

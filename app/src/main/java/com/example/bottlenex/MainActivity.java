@@ -1453,12 +1453,29 @@ public class MainActivity extends AppCompatActivity implements
         Log.d("SpeedAlert", "location.hasSpeed(): " + location.hasSpeed());
 
         // Check if we've reached the destination during navigation
-        if (isNavigating && mapManager.isNearDestination()) {
-            runOnUiThread(() -> {
-                Toast.makeText(this, "You have reached your destination!", Toast.LENGTH_LONG).show();
-                // Automatically finish the journey and clear everything
-                finishJourney();
-            });
+        // Use actual selectedLocation instead of last navigation step for more accurate detection
+        if (isNavigating && selectedLocation != null) {
+            float[] results = new float[1];
+            Location.distanceBetween(
+                location.getLatitude(), location.getLongitude(),
+                selectedLocation.getLatitude(), selectedLocation.getLongitude(),
+                results
+            );
+            
+            boolean isNearActualDestination = results[0] < 50; // Within 50 meters of actual destination
+            Log.d("NavigationDebug", "Distance to actual destination: " + results[0] + "m, isNear: " + isNearActualDestination);
+            
+            if (isNearActualDestination) {
+                Log.d("NavigationDebug", "Destination reached detected!");
+                Log.d("NavigationDebug", "Current location: " + location.getLatitude() + ", " + location.getLongitude());
+                Log.d("NavigationDebug", "Selected destination: " + selectedLocation.getLatitude() + ", " + selectedLocation.getLongitude());
+                
+                runOnUiThread(() -> {
+                    Toast.makeText(this, "You have reached your destination!", Toast.LENGTH_LONG).show();
+                    // Automatically finish the journey and clear everything
+                    finishJourney();
+                });
+            }
         }
 
         // Update navigation info during active navigation
@@ -1749,6 +1766,9 @@ public class MainActivity extends AppCompatActivity implements
                     journeyDestination.getLatitude() + ", " + journeyDestination.getLongitude() : "null"));
 
             // Start turn-by-turn navigation
+            // Note: Navigation steps should already be set via updateNavigationSteps during route selection
+            // But let's ensure they're set correctly for the current route
+            mapManager.updateNavigationSteps(currentRouteData.navigationSteps);
             mapManager.startNavigation(currentRouteData.navigationSteps);
 
             // Show remaining route info during navigation
@@ -2909,6 +2929,18 @@ public class MainActivity extends AppCompatActivity implements
                             alternativeRouteData = alternativeRoute;
                             showingAlternativeRoutes = true;
 
+                            // Debug logging
+                            Log.d("AltRouteDebug", "Main route steps: " + (mainRoute.navigationSteps != null ? mainRoute.navigationSteps.size() : 0));
+                            Log.d("AltRouteDebug", "Alt route steps: " + (alternativeRoute.navigationSteps != null ? alternativeRoute.navigationSteps.size() : 0));
+                            if (mainRoute.navigationSteps != null && !mainRoute.navigationSteps.isEmpty()) {
+                                GeoPoint mainLastStep = mainRoute.navigationSteps.get(mainRoute.navigationSteps.size() - 1).location;
+                                Log.d("AltRouteDebug", "Main route last step: " + mainLastStep.getLatitude() + ", " + mainLastStep.getLongitude());
+                            }
+                            if (alternativeRoute.navigationSteps != null && !alternativeRoute.navigationSteps.isEmpty()) {
+                                GeoPoint altLastStep = alternativeRoute.navigationSteps.get(alternativeRoute.navigationSteps.size() - 1).location;
+                                Log.d("AltRouteDebug", "Alt route last step: " + altLastStep.getLatitude() + ", " + altLastStep.getLongitude());
+                            }
+
                             // Draw both routes on the map
                             mapManager.drawDualRoutes(mainRoute.routePoints, alternativeRoute.routePoints);
 
@@ -2949,11 +2981,15 @@ public class MainActivity extends AppCompatActivity implements
         if (btnUseMain != null) btnUseMain.setOnClickListener(v -> {
             mapManager.selectMainRoute();
             currentRouteData = mainRouteData;
+            // Update navigation steps when selecting main route
+            mapManager.updateNavigationSteps(mainRouteData.navigationSteps);
         });
 
         if (btnUseAlt != null) btnUseAlt.setOnClickListener(v -> {
             mapManager.selectAlternativeRoute();
             currentRouteData = alternativeRouteData;
+            // Update navigation steps when selecting alternative route
+            mapManager.updateNavigationSteps(alternativeRouteData.navigationSteps);
         });
 
         if (btnConfirm != null) btnConfirm.setOnClickListener(v -> confirmSelectedRouteAndCloseOverlay());
@@ -2974,10 +3010,14 @@ public class MainActivity extends AppCompatActivity implements
             mapManager.clearAlternativeRoutes();
             mapManager.drawRoute(mainRouteData.routePoints);
             updateRouteSummary(mainRouteData);
+            // Ensure navigation steps are updated for main route
+            mapManager.updateNavigationSteps(mainRouteData.navigationSteps);
         } else {
             mapManager.clearAlternativeRoutes();
             mapManager.drawRoute(alternativeRouteData.routePoints);
             updateRouteSummary(alternativeRouteData);
+            // CRITICAL FIX: Update navigation steps for alternative route
+            mapManager.updateNavigationSteps(alternativeRouteData.navigationSteps);
         }
         hideAltRouteChooserPanel();
         Toast.makeText(this, "Route confirmed", Toast.LENGTH_SHORT).show();
