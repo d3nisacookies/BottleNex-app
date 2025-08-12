@@ -3,6 +3,7 @@ package com.example.bottlenex;
 import android.content.Intent;
 import android.os.Bundle;
 import android.widget.Button;
+import android.widget.ImageButton;
 
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
@@ -35,6 +36,36 @@ public class Bookmark extends AppCompatActivity {
         btnFavorites.setOnClickListener(v -> {
             Intent intent = new Intent(Bookmark.this, FavouritesActivity.class);
             startActivityForResult(intent, REQUEST_CODE_FAVOURITES);
+        });
+        
+        setupBottomNavigation();
+    }
+    
+    private void setupBottomNavigation() {
+        ImageButton btnNavigation = findViewById(R.id.btnNavigation);
+        ImageButton btnBookmark = findViewById(R.id.btnBookmark);
+        ImageButton btnCar = findViewById(R.id.btnCar);
+        ImageButton btnPersonalTools = findViewById(R.id.btnPersonalTools);
+        
+        btnNavigation.setOnClickListener(v -> {
+            Intent intent = new Intent(this, MainActivity.class);
+            intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
+            startActivity(intent);
+            finish();
+        });
+        
+        // btnBookmark - current page, no action needed
+        
+        btnCar.setOnClickListener(v -> {
+            UserTypeChecker.checkPremiumAccess(this, "Pre-Route Traffic Prediction", () -> {
+                Intent intent = new Intent(this, PrePlannedRouteActivity.class);
+                startActivity(intent);
+            });
+        });
+        
+        btnPersonalTools.setOnClickListener(v -> {
+            Intent intent = new Intent(this, PersonalTools.class);
+            startActivity(intent);
         });
     }
 

@@ -1096,9 +1096,11 @@ public class MainActivity extends AppCompatActivity implements
             });
         });
 
-        // Live Traffic button
+        // Live Traffic button - navigate back to MainActivity (refresh)
         binding.btnLiveTraffic.setOnClickListener(v -> {
-            toggleLiveTraffic();
+            Intent intent = new Intent(this, MainActivity.class);
+            intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
+            startActivity(intent);
         });
 
         binding.btnFavorite.setOnClickListener(v -> {

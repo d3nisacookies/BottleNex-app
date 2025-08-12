@@ -5,6 +5,7 @@ package com.example.bottlenex;
 import android.content.Intent;
 import android.os.Bundle;
 import android.widget.Button;
+import android.widget.ImageButton;
 import androidx.appcompat.app.AppCompatActivity;
 import com.example.bottlenex.ml.TrafficCongestionGraphsActivity;
 import com.example.bottlenex.ml.TrafficHeatmapsActivity;
@@ -49,5 +50,35 @@ public class PersonalTools extends AppCompatActivity {
                 startActivity(new Intent(PersonalTools.this, HistoricalTrafficDataActivity.class));
             });
         });
+        
+        setupBottomNavigation();
+    }
+    
+    private void setupBottomNavigation() {
+        ImageButton btnNavigation = findViewById(R.id.btnNavigation);
+        ImageButton btnBookmark = findViewById(R.id.btnBookmark);
+        ImageButton btnCar = findViewById(R.id.btnCar);
+        ImageButton btnPersonalTools = findViewById(R.id.btnPersonalTools);
+        
+        btnNavigation.setOnClickListener(v -> {
+            Intent intent = new Intent(this, MainActivity.class);
+            intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
+            startActivity(intent);
+            finish();
+        });
+        
+        btnBookmark.setOnClickListener(v -> {
+            Intent intent = new Intent(this, Bookmark.class);
+            startActivity(intent);
+        });
+        
+        btnCar.setOnClickListener(v -> {
+            UserTypeChecker.checkPremiumAccess(this, "Pre-Route Traffic Prediction", () -> {
+                Intent intent = new Intent(this, PrePlannedRouteActivity.class);
+                startActivity(intent);
+            });
+        });
+        
+        // btnPersonalTools - current page, no action needed
     }
 }
