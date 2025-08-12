@@ -87,8 +87,9 @@ public class ProfileActivity extends AppCompatActivity {
         });
 
         btnLogout.setOnClickListener(v -> {
-            // Handle logout logic
-            FirebaseAuth.getInstance().signOut();
+            // Handle logout logic with session manager
+            SessionManager sessionManager = new SessionManager(this);
+            sessionManager.logoutUser();
             Toast.makeText(ProfileActivity.this, "Logged out successfully", Toast.LENGTH_SHORT).show();
             
             // Navigate back to LoginActivity

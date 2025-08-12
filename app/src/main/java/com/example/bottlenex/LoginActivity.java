@@ -20,6 +20,7 @@ public class LoginActivity extends AppCompatActivity {
     ActivityLoginBinding binding;
     // DatabaseHelper databaseHelper; // Remove if not needed
     private FirebaseAuth mAuth;
+    private SessionManager sessionManager;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -34,6 +35,10 @@ public class LoginActivity extends AppCompatActivity {
         });
 
         mAuth = FirebaseAuth.getInstance();
+        sessionManager = new SessionManager(this);
+        
+        // Check if user is already logged in
+        checkExistingSession();
 
         binding.loginButton.setOnClickListener(v -> {
             String username = binding.loginUsername.getText().toString().trim();
@@ -45,6 +50,8 @@ public class LoginActivity extends AppCompatActivity {
                 mAuth.signInWithEmailAndPassword(username, password)
                     .addOnCompleteListener(task -> {
                         if (task.isSuccessful()) {
+                            // Handle successful login with session manager
+                            sessionManager.onLoginSuccess();
                             Toast.makeText(LoginActivity.this, "Login Successful", Toast.LENGTH_SHORT).show();
                             Intent intent = new Intent(getApplicationContext(), MainActivity.class);
                             startActivity(intent);
@@ -55,5 +62,16 @@ public class LoginActivity extends AppCompatActivity {
                     });
             }
         });
+    }
+    
+    private void checkExistingSession() {
+        // Check if user has a valid session
+        if (sessionManager.isValidSession()) {
+            // User is already logged in with valid session, redirect to MainActivity
+            Toast.makeText(this, "Welcome back!", Toast.LENGTH_SHORT).show();
+            Intent intent = new Intent(LoginActivity.this, MainActivity.class);
+            startActivity(intent);
+            finish();
+        }
     }
 }

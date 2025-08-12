@@ -986,8 +986,10 @@ public class MainActivity extends AppCompatActivity implements
         });
 
         binding.btnCar.setOnClickListener(v -> {
-            Intent intent = new Intent(MainActivity.this, PrePlannedRouteActivity.class);
-            startActivity(intent);
+            UserTypeChecker.checkPremiumAccess(this, "Pre-Route Traffic Prediction", () -> {
+                Intent intent = new Intent(MainActivity.this, PrePlannedRouteActivity.class);
+                startActivity(intent);
+            });
         });
 
         binding.btnFavorite.setOnClickListener(v -> {
@@ -1148,17 +1150,23 @@ public class MainActivity extends AppCompatActivity implements
         binding.btnCancelRoute.setOnClickListener(v -> cancelRoute());
 
         // Traffic prediction button handlers
-        binding.btnTrafficOverlay.setOnClickListener(v -> toggleTrafficOverlay());
+        binding.btnTrafficOverlay.setOnClickListener(v -> {
+            UserTypeChecker.checkPremiumAccess(this, "Traffic Overlay Prediction", () -> {
+                toggleTrafficOverlay();
+            });
+        });
         binding.btnRouteTraffic.setOnClickListener(v -> {
-            // Check if traffic analysis is already displayed
-            String currentText = binding.locationInfo.getText().toString();
-            if (currentText.contains("Traffic Analysis")) {
-                // If traffic analysis is already shown, just close it
-                showTrafficPredictionForRoute();
-            } else {
-                // If no traffic analysis is shown, show the time picker dialog
-                showCongestionInfoTimePickerDialog();
-            }
+            UserTypeChecker.checkPremiumAccess(this, "Traffic Analysis", () -> {
+                // Check if traffic analysis is already displayed
+                String currentText = binding.locationInfo.getText().toString();
+                if (currentText.contains("Traffic Analysis")) {
+                    // If traffic analysis is already shown, just close it
+                    showTrafficPredictionForRoute();
+                } else {
+                    // If no traffic analysis is shown, show the time picker dialog
+                    showCongestionInfoTimePickerDialog();
+                }
+            });
         });
     }
 
