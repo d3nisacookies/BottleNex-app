@@ -67,6 +67,17 @@ public class Bookmark extends AppCompatActivity {
                     resultIntent.putExtra("togo_lon", data.getDoubleExtra("togo_lon", 0));
                     setResult(RESULT_OK, resultIntent);
                     finish();
+                } else if ("deleted_togo".equals(action)) {
+                    // Pass deletion data from ToGoPlacesActivity
+                    resultIntent.putExtra("action", "deleted_togo");
+                    resultIntent.putExtra("deleted_place", data.getStringExtra("deleted_place"));
+                    setResult(RESULT_OK, resultIntent);
+                    finish();
+                } else if ("deleted_all_togo".equals(action)) {
+                    // Pass bulk deletion data from ToGoPlacesActivity
+                    resultIntent.putExtra("action", "deleted_all_togo");
+                    setResult(RESULT_OK, resultIntent);
+                    finish();
                 } else {
                     // Handle just selection (backward compatibility)
                     String selectedPlaceName = data.getStringExtra("selected_place_name");

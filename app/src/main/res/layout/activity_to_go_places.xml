@@ -81,29 +81,13 @@
         android:paddingStart="20dp"
         android:paddingEnd="20dp">
 
-        <ImageView
-            android:layout_width="24dp"
-            android:layout_height="24dp"
-            android:src="@android:drawable/ic_menu_search"
-            android:tint="@color/system_gray"
-            android:layout_gravity="start|center_vertical" />
-
         <SearchView
             android:id="@+id/searchView"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:queryHint="Search for a place to add..."
             android:iconifiedByDefault="false"
-            android:paddingStart="40dp"
-            android:paddingEnd="40dp"
             android:background="@android:color/transparent" />
-
-        <ImageView
-            android:layout_width="20dp"
-            android:layout_height="20dp"
-            android:src="@android:drawable/ic_menu_edit"
-            android:tint="@color/system_gray"
-            android:layout_gravity="end|center_vertical" />
 
     </FrameLayout>
 

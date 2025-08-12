@@ -43,8 +43,8 @@ public class ToGoPlacesActivity extends AppCompatActivity implements ToGoPlacesA
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_to_go_places);
 
-        // Initialize Geocoder
-        geocoder = new Geocoder(this, Locale.getDefault());
+        // Initialize Geocoder with Singapore locale for better local search results
+        geocoder = new Geocoder(this, new Locale("en", "SG"));
 
         // Setup toolbar
         MaterialToolbar toolbar = findViewById(R.id.toolbar_to_go);
@@ -224,6 +224,17 @@ public class ToGoPlacesActivity extends AppCompatActivity implements ToGoPlacesA
         saveToGoPlaces();
         updateUI();
         Toast.makeText(this, "All places cleared", Toast.LENGTH_SHORT).show();
+        
+        // Send broadcast to update map markers (same pattern as Favorites/Starred)
+        Intent intent = new Intent("TOGO_PLACES_UPDATED");
+        sendBroadcast(intent);
+        
+        // Pass back deletion info to MainActivity for immediate refresh
+        Intent resultIntent = new Intent();
+        resultIntent.putExtra("action", "deleted_all_togo");
+        setResult(RESULT_OK, resultIntent);
+        
+        Log.d("ToGoPlaces", "Sent delete all result back to MainActivity");
     }
 
     // ToGoPlacesAdapter.OnToGoPlaceActionListener implementation
@@ -271,6 +282,18 @@ public class ToGoPlacesActivity extends AppCompatActivity implements ToGoPlacesA
         saveToGoPlaces();
         updateUI();
         Toast.makeText(this, "Removed: " + placeName, Toast.LENGTH_SHORT).show();
+        
+        // Send broadcast to update map markers (same pattern as Favorites/Starred)
+        Intent intent = new Intent("TOGO_PLACES_UPDATED");
+        sendBroadcast(intent);
+        
+        // Pass back deletion info to MainActivity for immediate refresh
+        Intent resultIntent = new Intent();
+        resultIntent.putExtra("action", "deleted_togo");
+        resultIntent.putExtra("deleted_place", placeName);
+        setResult(RESULT_OK, resultIntent);
+        
+        Log.d("ToGoPlaces", "Sent deletion result back to MainActivity for: " + placeName);
     }
 
     @Override

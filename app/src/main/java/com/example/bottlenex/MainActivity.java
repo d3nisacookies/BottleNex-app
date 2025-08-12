@@ -157,6 +157,18 @@ public class MainActivity extends AppCompatActivity implements
         }
     };
 
+    // Broadcast receiver for To Go Places updates
+    private BroadcastReceiver toGoPlacesUpdateReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            if ("TOGO_PLACES_UPDATED".equals(intent.getAction())) {
+                Log.d("ToGoPlaces", "Broadcast received: TOGO_PLACES_UPDATED");
+                // Refresh To Go Places on the map
+                refreshToGoPlacesOnMap();
+            }
+        }
+    };
+
     // Traffic prediction variables
     private boolean showTrafficOverlay = false;
     private Handler trafficUpdateHandler = new Handler();
@@ -374,17 +386,29 @@ public class MainActivity extends AppCompatActivity implements
     }
 
     private void removeToGoMarker(String placeName) {
+        Log.d("ToGoPlaces", "removeToGoMarker called for: " + placeName);
+        Log.d("ToGoPlaces", "PlaceName hashCode: " + placeName.hashCode());
+        
         List<Overlay> overlays = binding.mapView.getOverlays();
+        Log.d("ToGoPlaces", "Total overlays before removal: " + overlays.size());
+        
+        int removedCount = 0;
         for (int i = overlays.size() - 1; i >= 0; i--) {
             Overlay overlay = overlays.get(i);
             if (overlay instanceof Marker) {
                 Marker marker = (Marker) overlay;
-                if (marker.getSnippet() != null && marker.getSnippet().startsWith("TOGO_PLACE_") &&
-                        marker.getSnippet().contains(String.valueOf(placeName.hashCode()))) {
-                    overlays.remove(i);
+                if (marker.getSnippet() != null && marker.getSnippet().startsWith("TOGO_PLACE_")) {
+                    Log.d("ToGoPlaces", "Found To Go marker with snippet: " + marker.getSnippet());
+                    if (marker.getSnippet().contains(String.valueOf(placeName.hashCode()))) {
+                        Log.d("ToGoPlaces", "Removing marker for: " + placeName + " (snippet: " + marker.getSnippet() + ")");
+                        overlays.remove(i);
+                        removedCount++;
+                    }
                 }
             }
         }
+        
+        Log.d("ToGoPlaces", "Removed " + removedCount + " markers. Total overlays after removal: " + overlays.size());
         binding.mapView.invalidate();
     }
 
@@ -418,6 +442,22 @@ public class MainActivity extends AppCompatActivity implements
         loadFavourites();
 
         Log.d("Favourites", "Favourite places refresh completed");
+    }
+
+    /**
+     * Refresh To Go Places on the map
+     * This method clears existing To Go Place markers and reloads them from SharedPreferences
+     */
+    private void refreshToGoPlacesOnMap() {
+        Log.d("ToGoPlaces", "Refreshing To Go Places on map");
+
+        // Clear existing To Go Place markers
+        clearToGoPlaceMarkers();
+
+        // Reload from SharedPreferences
+        loadToGoPlaces();
+
+        Log.d("ToGoPlaces", "To Go Places refresh completed");
     }
 
     /**
@@ -524,6 +564,44 @@ public class MainActivity extends AppCompatActivity implements
         overlays.removeAll(overlaysToRemove);
         binding.mapView.invalidate();
         Log.d("Favourites", "Favourite markers cleared. Remaining overlays: " + overlays.size());
+    }
+
+    /**
+     * Clear all To Go Place markers from the map
+     * This method is useful for refreshing the map display
+     */
+    private void clearToGoPlaceMarkers() {
+        if (binding.mapView == null) {
+            Log.w("ToGoPlaces", "MapView is null, cannot clear markers");
+            return;
+        }
+
+        List<Overlay> overlays = binding.mapView.getOverlays();
+        List<Overlay> overlaysToRemove = new ArrayList<>();
+
+        Log.d("ToGoPlaces", "Scanning " + overlays.size() + " overlays for To Go Place markers");
+
+        for (Overlay overlay : overlays) {
+            if (overlay instanceof Marker) {
+                Marker marker = (Marker) overlay;
+                // Check for To Go Place markers using snippet identifier
+                boolean isToGoMarker = false;
+
+                if (marker.getSnippet() != null && marker.getSnippet().startsWith("TOGO_PLACE_")) {
+                    isToGoMarker = true;
+                }
+
+                if (isToGoMarker) {
+                    overlaysToRemove.add(overlay);
+                    Log.d("ToGoPlaces", "Found To Go Place marker to remove: " + marker.getTitle() + " (snippet: " + marker.getSnippet() + ")");
+                }
+            }
+        }
+
+        Log.d("ToGoPlaces", "Removing " + overlaysToRemove.size() + " To Go Place markers");
+        overlays.removeAll(overlaysToRemove);
+        binding.mapView.invalidate();
+        Log.d("ToGoPlaces", "To Go Place markers cleared. Remaining overlays: " + overlays.size());
     }
 
     /**
@@ -886,6 +964,15 @@ public class MainActivity extends AppCompatActivity implements
                 this,
                 favouritesUpdateReceiver,
                 favouritesFilter,
+                androidx.core.content.ContextCompat.RECEIVER_NOT_EXPORTED
+        );
+
+        // Register broadcast receiver for To Go Places updates
+        IntentFilter toGoFilter = new IntentFilter("TOGO_PLACES_UPDATED");
+        androidx.core.content.ContextCompat.registerReceiver(
+                this,
+                toGoPlacesUpdateReceiver,
+                toGoFilter,
                 androidx.core.content.ContextCompat.RECEIVER_NOT_EXPORTED
         );
     }
@@ -2127,6 +2214,13 @@ public class MainActivity extends AppCompatActivity implements
         } catch (Exception e) {
             // Receiver might not be registered
         }
+
+        // Unregister broadcast receiver for To Go Places updates
+        try {
+            unregisterReceiver(toGoPlacesUpdateReceiver);
+        } catch (Exception e) {
+            // Receiver might not be registered
+        }
     }
 
     private String getAddressFromLocation(Location location) {
@@ -2795,6 +2889,31 @@ public class MainActivity extends AppCompatActivity implements
                 Log.d("Favourites", "Immediately cleared all favourite markers");
                 // Verify synchronization after bulk deletion
                 verifyFavouritesSynchronization();
+            } else if ("deleted_togo".equals(action)) {
+                // Handle individual To Go Place deletion - refresh map immediately
+                Log.d("ToGoPlaces", "Processing individual To Go Place deletion");
+                String deletedPlace = data.getStringExtra("deleted_place");
+                Log.d("ToGoPlaces", "Raw deleted_place value: '" + deletedPlace + "'");
+                if (deletedPlace != null) {
+                    Log.d("ToGoPlaces", "Received deletion result for: " + deletedPlace);
+                    Log.d("ToGoPlaces", "deletedPlace length: " + deletedPlace.length());
+                    Log.d("ToGoPlaces", "deletedPlace hashCode: " + deletedPlace.hashCode());
+                    // Remove the specific To Go Place marker
+                    removeToGoMarker(deletedPlace);
+                    Log.d("ToGoPlaces", "Called removeToGoMarker for: " + deletedPlace);
+                }
+                // Also refresh the entire map to ensure synchronization
+                refreshToGoPlacesOnMap();
+
+            } else if ("deleted_all_togo".equals(action)) {
+                // Handle bulk deletion - clear all To Go Place markers immediately
+                Log.d("ToGoPlaces", "Processing bulk To Go Place deletion");
+                Log.d("ToGoPlaces", "Received bulk deletion result");
+                clearToGoPlaceMarkers();
+                if (binding.mapView != null) {
+                    binding.mapView.invalidate();
+                }
+                Log.d("ToGoPlaces", "Immediately cleared all To Go Place markers");
             } else if ("togo_navigate".equals(action)) {
                 // Handle navigation to a To Go place
                 String placeName = data.getStringExtra("togo_name");
