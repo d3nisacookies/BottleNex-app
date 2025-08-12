@@ -298,6 +298,17 @@ public class MapManager {
         }
     }
     
+    public void resetToDefaultZoom() {
+        try {
+            if (mapController != null) {
+                mapController.setZoom(DEFAULT_ZOOM);
+                Log.d(TAG, "Reset to default zoom level: " + DEFAULT_ZOOM);
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "Error resetting to default zoom", e);
+        }
+    }
+    
     public void centerOnMyLocation() {
         try {
             if (myLocationOverlay != null && myLocationOverlay.getMyLocation() != null) {

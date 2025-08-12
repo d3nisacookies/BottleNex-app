@@ -1750,6 +1750,9 @@ public class MainActivity extends AppCompatActivity implements
             binding.btnJourney.setText("Finish Navigation");
             binding.tvJourneyState.setVisibility(View.GONE); // Hide the redundant message
 
+            // Reset to default zoom level for consistent navigation view
+            mapManager.resetToDefaultZoom();
+
             // Hide search suggestions during navigation
             hideSearchSuggestions();
 
