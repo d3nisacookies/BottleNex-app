@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:padding="16dp">
+
+    <!-- Main Route Option -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:background="@drawable/modern_card_background"
+        android:padding="12dp"
+        android:layout_marginBottom="8dp">
+
+        <TextView
+            android:id="@+id/mainRouteInfo"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Main Route\n0.0 km • 0 min"
+            android:textSize="16sp"
+            android:textStyle="bold"
+            android:textColor="@color/black"
+            android:layout_marginBottom="8dp" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/selectMainRoute"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Select Main Route"
+            android:textSize="14sp"
+            style="@style/Widget.Material3.Button" />
+
+    </LinearLayout>
+
+    <!-- Alternative Route Option -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:background="@drawable/modern_card_background"
+        android:padding="12dp"
+        android:layout_marginBottom="8dp">
+
+        <TextView
+            android:id="@+id/alternativeRouteInfo"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Alternative Route\n0.0 km • 0 min"
+            android:textSize="16sp"
+            android:textStyle="bold"
+            android:textColor="@color/black"
+            android:layout_marginBottom="8dp" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/selectAlternativeRoute"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Select Alternative Route"
+            android:textSize="14sp"
+            style="@style/Widget.BottleNex.Button.OutlinedButton" />
+
+    </LinearLayout>
+
+</LinearLayout>

@@ -233,7 +233,7 @@
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="6dp"
+            android:layout_marginTop="8dp"
             android:orientation="horizontal"
             android:visibility="gone"
             android:id="@+id/trafficButtonsLayout">
@@ -242,13 +242,16 @@
                 android:id="@+id/btnTrafficOverlay"
                 style="@style/Widget.BottleNex.Button.OutlinedButton"
                 android:layout_width="0dp"
-                android:layout_height="36dp"
+                android:layout_height="wrap_content"
                 android:layout_weight="1"
                 android:layout_marginStart="6dp"
                 android:layout_marginEnd="3dp"
                 android:text="Predict Traffic"
                 android:textSize="11sp"
-                android:minHeight="0dp"
+                android:minHeight="36dp"
+                android:maxLines="2"
+                android:ellipsize="end"
+                android:gravity="center"
                 android:paddingTop="4dp"
                 android:paddingBottom="4dp" />
 
@@ -256,15 +259,96 @@
                 android:id="@+id/btnRouteTraffic"
                 style="@style/Widget.BottleNex.Button.OutlinedButton"
                 android:layout_width="0dp"
-                android:layout_height="36dp"
+                android:layout_height="wrap_content"
                 android:layout_marginStart="3dp"
-                android:layout_marginEnd="6dp"
+                android:layout_marginEnd="3dp"
                 android:layout_weight="1"
                 android:text="Traffic Analysis"
                 android:textSize="11sp"
-                android:minHeight="0dp"
+                android:minHeight="36dp"
+                android:maxLines="2"
+                android:ellipsize="end"
+                android:gravity="center"
                 android:paddingTop="4dp"
                 android:paddingBottom="4dp" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnAlternativeRoute"
+                style="@style/Widget.BottleNex.Button.OutlinedButton"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="3dp"
+                android:layout_marginEnd="6dp"
+                android:layout_weight="1"
+                android:text="Alt Route"
+                android:textSize="11sp"
+                android:minHeight="36dp"
+                android:maxLines="2"
+                android:ellipsize="end"
+                android:gravity="center"
+                android:paddingTop="4dp"
+                android:paddingBottom="4dp" />
+        </LinearLayout>
+
+        <!-- Compact Alt Route Chooser Row (side-by-side buttons) -->
+        <LinearLayout
+            android:id="@+id/altRouteChooserRow"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:orientation="horizontal"
+            android:visibility="gone">
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnChooseMainRoute"
+                style="@style/Widget.Material3.Button"
+                android:layout_width="0dp"
+                android:layout_height="36dp"
+                android:layout_weight="1"
+                android:layout_marginStart="6dp"
+                android:layout_marginEnd="3dp"
+                android:text="Main • 0.0 km • 0 min"
+                android:textSize="11sp"
+                android:minHeight="36dp"
+                android:maxLines="1"
+                android:ellipsize="end"
+                android:gravity="center"
+                app:backgroundTint="@color/blue_500"
+                android:textColor="@android:color/white" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnChooseAltRoute"
+                style="@style/Widget.Material3.Button"
+                android:layout_width="0dp"
+                android:layout_height="36dp"
+                android:layout_weight="1"
+                android:layout_marginStart="3dp"
+                android:layout_marginEnd="3dp"
+                android:text="Alt • 0.0 km • 0 min"
+                android:textSize="11sp"
+                android:minHeight="36dp"
+                android:maxLines="1"
+                android:ellipsize="end"
+                android:gravity="center"
+                app:backgroundTint="@color/blue_500"
+                android:textColor="@android:color/white" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnConfirmRoute"
+                style="@style/Widget.Material3.Button"
+                android:layout_width="0dp"
+                android:layout_height="36dp"
+                android:layout_weight="1"
+                android:layout_marginStart="3dp"
+                android:layout_marginEnd="6dp"
+                android:text="Confirm"
+                android:textSize="11sp"
+                android:minHeight="36dp"
+                android:maxLines="1"
+                android:ellipsize="end"
+                android:gravity="center"
+                app:backgroundTint="@color/green_500"
+                android:textColor="@android:color/white" />
         </LinearLayout>
 
         <!-- Modern bottom navigation -->
@@ -343,5 +427,101 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         android:layout_marginBottom="8dp"/>
+
+    <!-- Overlay card that temporarily replaces the bottom panel controls
+         to let users compare/select routes. Hidden by default. -->
+    <LinearLayout
+        android:id="@+id/altRouteOverlayCard"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:background="@drawable/modern_card_background"
+        android:padding="14dp"
+        android:layout_margin="12dp"
+        android:elevation="16dp"
+        android:visibility="gone"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent">
+
+        <TextView
+            android:id="@+id/altOverlayTitle"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Alternative Routes"
+            android:textSize="16sp"
+            android:textStyle="bold"
+            android:textColor="@color/black"
+            android:layout_marginBottom="8dp" />
+
+        <TextView
+            android:id="@+id/overlayMainInfo"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Main Route • 0.0 km • 0 min"
+            android:textSize="15sp"
+            android:textColor="@color/black"
+            android:layout_marginBottom="6dp" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnOverlayUseMain"
+            style="@style/Widget.Material3.Button"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Use Main Route"
+            android:textSize="14sp"
+            app:backgroundTint="@color/blue_500"
+            android:textColor="@android:color/white" />
+
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="8dp" />
+
+        <TextView
+            android:id="@+id/overlayAltInfo"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Alternative Route • 0.0 km • 0 min"
+            android:textSize="15sp"
+            android:textColor="@color/black"
+            android:layout_marginBottom="6dp" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnOverlayUseAlt"
+            style="@style/Widget.Material3.Button"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Use Alternative Route"
+            android:textSize="14sp"
+            app:backgroundTint="@color/blue_500"
+            android:textColor="@android:color/white" />
+
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="8dp" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnOverlayConfirm"
+            style="@style/Widget.Material3.Button"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Confirm"
+            android:textSize="14sp"
+            app:backgroundTint="@color/green_500"
+            android:textColor="@android:color/white" />
+
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="8dp" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnOverlayClose"
+            style="@style/Widget.BottleNex.Button.OutlinedButton"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Cancel"
+            android:textSize="14sp" />
+
+    </LinearLayout>
 
 </androidx.constraintlayout.widget.ConstraintLayout>

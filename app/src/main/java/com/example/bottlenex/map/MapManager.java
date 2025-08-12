@@ -22,6 +22,7 @@ import org.osmdroid.api.IMapController;
 import org.osmdroid.config.Configuration;
 import org.osmdroid.tileprovider.tilesource.TileSourceFactory;
 import org.osmdroid.util.GeoPoint;
+import org.osmdroid.util.BoundingBox;
 import org.osmdroid.views.MapView;
 import org.osmdroid.views.overlay.Marker;
 import org.osmdroid.views.overlay.mylocation.GpsMyLocationProvider;
@@ -59,6 +60,8 @@ public class MapManager {
     private LocationManager locationManager;
     private LocationListener locationListener;
     private Polyline routeLine;
+    private Polyline mainRouteLine;
+    private Polyline alternativeRouteLine;
     private Location lastKnownLocation;
     private FusedLocationProviderClient fusedLocationClient;
     private LocationCallback locationCallback;
@@ -266,6 +269,7 @@ public class MapManager {
     }
 
 
+
     public void stopLocationUpdates() {
         if (fusedLocationClient != null && locationCallback != null) {
             fusedLocationClient.removeLocationUpdates(locationCallback);
@@ -421,16 +425,87 @@ public class MapManager {
         routeLine.setWidth(6f); // Visible route line thickness
 
         mapView.getOverlays().add(routeLine);
+
+        fitToRoute(points, 12);
+
         mapView.invalidate();
+    }
+
+    public void drawDualRoutes(List<GeoPoint> mainRoutePoints, List<GeoPoint> alternativeRoutePoints) {
+        clearAllRoutes();
+
+        // main route blue line
+        mainRouteLine = new Polyline();
+        mainRouteLine.setPoints(mainRoutePoints);
+        mainRouteLine.setColor(Color.BLUE);
+        mainRouteLine.setWidth(8f);
+
+        // alt route grey
+        alternativeRouteLine = new Polyline();
+        alternativeRouteLine.setPoints(alternativeRoutePoints);
+        alternativeRouteLine.setColor(Color.MAGENTA);
+        alternativeRouteLine.setWidth(4f);
+
+        mapView.getOverlays().add(mainRouteLine);
+        mapView.getOverlays().add(alternativeRouteLine);
+
+        List<GeoPoint> combined = new ArrayList<>(mainRoutePoints);
+        combined.addAll(alternativeRoutePoints);
+        fitToRoute(combined, 12);
+
+        mapView.invalidate();
+    }
+
+    public void selectMainRoute() {
+        if (mainRouteLine != null && alternativeRouteLine != null) {
+            mainRouteLine.setColor(Color.BLUE);
+            mainRouteLine.setWidth(8f);
+            alternativeRouteLine.setColor(Color.MAGENTA);
+            alternativeRouteLine.setWidth(4f);
+            mapView.invalidate();
+        }
+    }
+
+    public void selectAlternativeRoute() {
+        if (mainRouteLine != null && alternativeRouteLine != null) {
+            mainRouteLine.setColor(Color.DKGRAY);
+            mainRouteLine.setWidth(4f);
+            alternativeRouteLine.setColor(Color.BLUE);
+            alternativeRouteLine.setWidth(8f);
+            mapView.invalidate();
+        }
+    }
+
+    public void clearAlternativeRoutes() {
+        if (mainRouteLine != null && mapView != null) {
+            mapView.getOverlays().remove(mainRouteLine);
+            mainRouteLine = null;
+        }
+        if (alternativeRouteLine != null && mapView != null) {
+            mapView.getOverlays().remove(alternativeRouteLine);
+            alternativeRouteLine = null;
+        }
+        mapView.invalidate();
+    }
+
+    private void clearAllRoutes() {
+        if (routeLine != null && mapView != null) {
+            mapView.getOverlays().remove(routeLine);
+            routeLine = null;
+        }
+        if (mainRouteLine != null && mapView != null) {
+            mapView.getOverlays().remove(mainRouteLine);
+            mainRouteLine = null;
+        }
+        if (alternativeRouteLine != null && mapView != null) {
+            mapView.getOverlays().remove(alternativeRouteLine);
+            alternativeRouteLine = null;
+        }
     }
 
     public void clearRoute() {
         try {
-            if (routeLine != null && mapView != null) {
-                mapView.getOverlays().remove(routeLine);
-                routeLine = null;
-                mapView.invalidate();
-            }
+            clearAllRoutes();
             
             // Also clear traffic overlay when route is cleared
             if (trafficOverlay != null) {
@@ -522,7 +597,7 @@ public class MapManager {
             // Auto-follow will resume automatically after 7 seconds
         }
     }
-    
+
     // Traffic Overlay Methods
     public void showTrafficOverlay(boolean show) {
         Log.d(TAG, "showTrafficOverlay called with show=" + show + ", trafficOverlay null=" + (trafficOverlay == null));
@@ -575,6 +650,30 @@ public class MapManager {
         if (trafficOverlay != null) {
             trafficOverlay.setCustomTrafficTime(customTime);
         }
+    }
+
+    // zoom out when route is selected to navigate from start to end
+    private void fitToRoute(List<GeoPoint> points, int paddingPercent) {
+        if (mapView == null || points == null || points.isEmpty()) return;
+        double minLat = Double.MAX_VALUE, maxLat = -Double.MAX_VALUE;
+        double minLon = Double.MAX_VALUE, maxLon = -Double.MAX_VALUE;
+        for (GeoPoint p : points) {
+            if (p == null) continue;
+            double lat = p.getLatitude();
+            double lon = p.getLongitude();
+            if (lat < minLat) minLat = lat;
+            if (lat > maxLat) maxLat = lat;
+            if (lon < minLon) minLon = lon;
+            if (lon > maxLon) maxLon = lon;
+        }
+        if (minLat == Double.MAX_VALUE) return;
+        // Expand bbox by padding percent
+        double latSpan = Math.max(0.0005, maxLat - minLat);
+        double lonSpan = Math.max(0.0005, maxLon - minLon);
+        double padLat = latSpan * (paddingPercent / 100.0);
+        double padLon = lonSpan * (paddingPercent / 100.0);
+        BoundingBox bbox = new BoundingBox(maxLat + padLat, maxLon + padLon, minLat - padLat, minLon - padLon);
+        mapView.zoomToBoundingBox(bbox, true);
     }
 
 }

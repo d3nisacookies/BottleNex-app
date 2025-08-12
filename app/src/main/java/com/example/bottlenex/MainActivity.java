@@ -102,6 +102,9 @@ public class MainActivity extends AppCompatActivity implements
     private boolean isNavigating = false;
     private Location lastSpeedAlertLocation = null; // Track location for 100m alerts
     private RoutePlanner.RouteData currentRouteData = null;
+    private RoutePlanner.RouteData mainRouteData = null;
+    private RoutePlanner.RouteData alternativeRouteData = null;
+    private boolean showingAlternativeRoutes = false;
 
     // Store the address of the currently selected location (from search or map tap)
     private String selectedLocationAddress = "";
@@ -870,11 +873,21 @@ public class MainActivity extends AppCompatActivity implements
 
         // Register broadcast receiver for starred places updates
         IntentFilter filter = new IntentFilter("STARRED_PLACES_UPDATED");
-        registerReceiver(starredPlacesUpdateReceiver, filter, Context.RECEIVER_NOT_EXPORTED);
+        androidx.core.content.ContextCompat.registerReceiver(
+                this,
+                starredPlacesUpdateReceiver,
+                filter,
+                androidx.core.content.ContextCompat.RECEIVER_NOT_EXPORTED
+        );
 
         // Register broadcast receiver for favourites updates
         IntentFilter favouritesFilter = new IntentFilter("FAVOURITES_UPDATED");
-        registerReceiver(favouritesUpdateReceiver, favouritesFilter, Context.RECEIVER_NOT_EXPORTED);
+        androidx.core.content.ContextCompat.registerReceiver(
+                this,
+                favouritesUpdateReceiver,
+                favouritesFilter,
+                androidx.core.content.ContextCompat.RECEIVER_NOT_EXPORTED
+        );
     }
 
     // Add missing method stubs
@@ -1168,6 +1181,9 @@ public class MainActivity extends AppCompatActivity implements
                 }
             });
         });
+
+        // Alternative route button
+        binding.btnAlternativeRoute.setOnClickListener(v -> showAlternativeRoutes());
     }
 
     private void saveFavourite(String name, double lat, double lon) {
@@ -1658,6 +1674,9 @@ public class MainActivity extends AppCompatActivity implements
 
         String apiKey = "eyJvcmciOiI1YjNjZTM1OTc4NTExMTAwMDFjZjYyNDgiLCJpZCI6ImE3NmQzMjQwZWU4MzRjYWFiNTllOWI0MWM2MmE5ODc3IiwiaCI6Im11cm11cjY0In0=";
 
+        // Ensure any previous alt-route chooser is hidden
+        hideAltRouteChooserPanel();
+
         RoutePlanner.getRoute(start, end, apiKey, new RoutePlanner.RouteCallback() {
             @Override
             public void onRouteReady(RoutePlanner.RouteData routeData) {
@@ -1744,6 +1763,9 @@ public class MainActivity extends AppCompatActivity implements
 
         // Hide navigation instruction
         binding.navigationInstruction.setVisibility(View.GONE);
+
+        // Hide alt-route chooser if visible
+        hideAltRouteChooserPanel();
 
         // Search suggestions will be automatically re-enabled since isNavigating = false
 
@@ -1999,6 +2021,9 @@ public class MainActivity extends AppCompatActivity implements
 
         // Hide navigation instruction
         binding.navigationInstruction.setVisibility(View.GONE);
+
+        // Hide alt-route chooser if visible
+        hideAltRouteChooserPanel();
 
         // Clear the selected location marker
         mapManager.clearMarkers();
@@ -2855,6 +2880,138 @@ public class MainActivity extends AppCompatActivity implements
         }
 
         return favouritesOnMap;
+    }
+
+    private void showAlternativeRoutes() {
+        if (selectedLocation == null) {
+            Toast.makeText(this, "Please select a destination first", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        Location currentLocation = mapManager.getLastKnownLocation();
+        if (currentLocation == null) {
+            Toast.makeText(this, "Unable to get current location", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        // Show loading message
+        Toast.makeText(this, "Calculating alternative routes...", Toast.LENGTH_SHORT).show();
+
+        // Get dual routes via POST (with alternative_routes)
+        GeoPoint start = new GeoPoint(currentLocation.getLatitude(), currentLocation.getLongitude());
+        String apiKey = "eyJvcmciOiI1YjNjZTM1OTc4NTExMTAwMDFjZjYyNDgiLCJpZCI6ImE3NmQzMjQwZWU4MzRjYWFiNTllOWI0MWM2MmE5ODc3IiwiaCI6Im11cm11cjY0In0=";
+        RoutePlanner.getDualRoutesPost(start, selectedLocation, apiKey,
+                new RoutePlanner.DualRouteCallback() {
+                    @Override
+                    public void onRoutesReady(RoutePlanner.RouteData mainRoute, RoutePlanner.RouteData alternativeRoute) {
+                        runOnUiThread(() -> {
+                            mainRouteData = mainRoute;
+                            alternativeRouteData = alternativeRoute;
+                            showingAlternativeRoutes = true;
+
+                            // Draw both routes on the map
+                            mapManager.drawDualRoutes(mainRoute.routePoints, alternativeRoute.routePoints);
+
+                            // Show inline chooser panel at the bottom so user can compare on map
+                            showAltRouteChooserPanel();
+                        });
+                    }
+
+                    @Override
+                    public void onError(String errorMessage) {
+                        android.util.Log.e("AltRoutes", "Failed to get alternative routes: " + errorMessage);
+                        runOnUiThread(() -> {
+                            Toast.makeText(MainActivity.this, "Failed to get alternative routes: " + errorMessage, Toast.LENGTH_SHORT).show();
+                        });
+                    }
+                });
+    }
+
+    // Show alt routes overlay
+    private void showAltRouteChooserPanel() {
+        View overlay = findViewById(R.id.altRouteOverlayCard);
+        View bottomPanel = findViewById(R.id.bottomPanel);
+        if (overlay == null || bottomPanel == null) return;
+        overlay.setVisibility(View.VISIBLE);
+
+        TextView overlayMainInfo = findViewById(R.id.overlayMainInfo);
+        TextView overlayAltInfo = findViewById(R.id.overlayAltInfo);
+        com.google.android.material.button.MaterialButton btnUseMain = findViewById(R.id.btnOverlayUseMain);
+        com.google.android.material.button.MaterialButton btnUseAlt = findViewById(R.id.btnOverlayUseAlt);
+        com.google.android.material.button.MaterialButton btnConfirm = findViewById(R.id.btnOverlayConfirm);
+        com.google.android.material.button.MaterialButton btnClose = findViewById(R.id.btnOverlayClose);
+
+        String mainInfo = String.format("Main Route • %.1f km • %.0f min", mainRouteData.distance / 1000, mainRouteData.duration / 60);
+        String altInfo = String.format("Alternative Route • %.1f km • %.0f min", alternativeRouteData.distance / 1000, alternativeRouteData.duration / 60);
+        if (overlayMainInfo != null) overlayMainInfo.setText(mainInfo);
+        if (overlayAltInfo != null) overlayAltInfo.setText(altInfo);
+
+        if (btnUseMain != null) btnUseMain.setOnClickListener(v -> {
+            mapManager.selectMainRoute();
+            currentRouteData = mainRouteData;
+        });
+
+        if (btnUseAlt != null) btnUseAlt.setOnClickListener(v -> {
+            mapManager.selectAlternativeRoute();
+            currentRouteData = alternativeRouteData;
+        });
+
+        if (btnConfirm != null) btnConfirm.setOnClickListener(v -> confirmSelectedRouteAndCloseOverlay());
+
+        if (btnClose != null) btnClose.setOnClickListener(v -> {
+            overlay.setVisibility(View.GONE);
+        });
+    }
+
+    private void hideAltRouteChooserPanel() {
+        View overlay = findViewById(R.id.altRouteOverlayCard);
+        if (overlay != null) overlay.setVisibility(View.GONE);
+    }
+
+    private void confirmSelectedRouteAndCloseOverlay() {
+        if (currentRouteData == null) currentRouteData = mainRouteData;
+        if (currentRouteData == mainRouteData) {
+            mapManager.clearAlternativeRoutes();
+            mapManager.drawRoute(mainRouteData.routePoints);
+            updateRouteSummary(mainRouteData);
+        } else {
+            mapManager.clearAlternativeRoutes();
+            mapManager.drawRoute(alternativeRouteData.routePoints);
+            updateRouteSummary(alternativeRouteData);
+        }
+        hideAltRouteChooserPanel();
+        Toast.makeText(this, "Route confirmed", Toast.LENGTH_SHORT).show();
+    }
+
+    private AlertDialog dialog;
+
+    private void selectMainRoute() {
+        currentRouteData = mainRouteData;
+        showingAlternativeRoutes = false;
+
+        mapManager.selectMainRoute();
+
+        updateRouteSummary(mainRouteData);
+        
+        Toast.makeText(this, "Main route selected", Toast.LENGTH_SHORT).show();
+    }
+
+    private void selectAlternativeRoute() {
+        currentRouteData = alternativeRouteData;
+        showingAlternativeRoutes = false;
+
+        mapManager.selectAlternativeRoute();
+
+        updateRouteSummary(alternativeRouteData);
+        
+        Toast.makeText(this, "Alternative route selected", Toast.LENGTH_SHORT).show();
+    }
+
+    private void updateRouteSummary(RoutePlanner.RouteData routeData) {
+        if (routeData == null) return;
+        String summary = String.format("Route: %.1f km • %.0f min",
+                routeData.distance / 1000.0, routeData.duration / 60.0);
+        binding.locationInfo.setText(summary);
     }
 }
 
