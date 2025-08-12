@@ -40,10 +40,20 @@ public class TrafficCongestionGraphsActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_traffic_congestion_graphs);
         
+        setupToolbar();
         initializeViews();
         setupCharts();
         setupClickListeners();
         showLineChart(); // Start with line chart
+    }
+    
+    private void setupToolbar() {
+        com.google.android.material.appbar.MaterialToolbar toolbar = findViewById(R.id.toolbar);
+        setSupportActionBar(toolbar);
+        if (getSupportActionBar() != null) {
+            getSupportActionBar().setDisplayHomeAsUpEnabled(true);
+            getSupportActionBar().setDisplayShowHomeEnabled(true);
+        }
     }
     
     private void initializeViews() {
@@ -52,7 +62,7 @@ public class TrafficCongestionGraphsActivity extends AppCompatActivity {
         tvTitle = findViewById(R.id.tvTitle);
         btnSwitchView = findViewById(R.id.btnSwitchView);
         
-        tvTitle.setText("Singapore Traffic Congestion Analysis");
+        tvTitle.setText("Historical Congestion Graphs");
         btnSwitchView.setText("Switch to Bar Chart");
     }
     

@@ -42,16 +42,12 @@ public class PersonalTools extends AppCompatActivity {
             startActivity(new Intent(PersonalTools.this, AlertSettingsActivity.class));
         });
 
-        // Traffic Congestion Graphs button
-        Button btnTrafficCongestionGraphs = findViewById(R.id.btnTrafficCongestionGraphs);
-        btnTrafficCongestionGraphs.setOnClickListener(v -> {
-            startActivity(new Intent(PersonalTools.this, TrafficCongestionGraphsActivity.class));
-        });
-
-        // Traffic Heatmaps button
-        Button btnTrafficHeatmaps = findViewById(R.id.btnTrafficHeatmaps);
-        btnTrafficHeatmaps.setOnClickListener(v -> {
-            startActivity(new Intent(PersonalTools.this, TrafficHeatmapsActivity.class));
+        // Historical Traffic Data button
+        Button btnHistoricalTrafficData = findViewById(R.id.btnHistoricalTrafficData);
+        btnHistoricalTrafficData.setOnClickListener(v -> {
+            UserTypeChecker.checkPremiumAccess(this, "Historical Traffic Data", () -> {
+                startActivity(new Intent(PersonalTools.this, HistoricalTrafficDataActivity.class));
+            });
         });
     }
 }

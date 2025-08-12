@@ -100,15 +100,21 @@
         </activity>
 
         <activity
+            android:name=".HistoricalTrafficDataActivity"
+            android:label="Historical Traffic Data"
+            android:parentActivityName=".PersonalTools">
+        </activity>
+
+        <activity
             android:name=".ml.TrafficCongestionGraphsActivity"
             android:label="Traffic Congestion Graphs"
-            android:parentActivityName=".PersonalTools">
+            android:parentActivityName=".HistoricalTrafficDataActivity">
         </activity>
 
         <activity
             android:name=".ml.TrafficHeatmapsActivity"
             android:label="Traffic Heatmaps"
-            android:parentActivityName=".PersonalTools">
+            android:parentActivityName=".HistoricalTrafficDataActivity">
         </activity>
 
         <activity
