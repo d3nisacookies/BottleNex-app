@@ -6,6 +6,8 @@ import android.content.Intent;
 import android.os.Bundle;
 import android.widget.Button;
 import androidx.appcompat.app.AppCompatActivity;
+import com.example.bottlenex.ml.TrafficCongestionGraphsActivity;
+import com.example.bottlenex.ml.TrafficHeatmapsActivity;
 
 public class PersonalTools extends AppCompatActivity {
 
@@ -38,6 +40,18 @@ public class PersonalTools extends AppCompatActivity {
         Button btnAlertSettings = findViewById(R.id.btnAlertSettings);
         btnAlertSettings.setOnClickListener(v -> {
             startActivity(new Intent(PersonalTools.this, AlertSettingsActivity.class));
+        });
+
+        // Traffic Congestion Graphs button
+        Button btnTrafficCongestionGraphs = findViewById(R.id.btnTrafficCongestionGraphs);
+        btnTrafficCongestionGraphs.setOnClickListener(v -> {
+            startActivity(new Intent(PersonalTools.this, TrafficCongestionGraphsActivity.class));
+        });
+
+        // Traffic Heatmaps button
+        Button btnTrafficHeatmaps = findViewById(R.id.btnTrafficHeatmaps);
+        btnTrafficHeatmaps.setOnClickListener(v -> {
+            startActivity(new Intent(PersonalTools.this, TrafficHeatmapsActivity.class));
         });
     }
 }

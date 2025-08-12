@@ -100,6 +100,18 @@
         </activity>
 
         <activity
+            android:name=".ml.TrafficCongestionGraphsActivity"
+            android:label="Traffic Congestion Graphs"
+            android:parentActivityName=".PersonalTools">
+        </activity>
+
+        <activity
+            android:name=".ml.TrafficHeatmapsActivity"
+            android:label="Traffic Heatmaps"
+            android:parentActivityName=".PersonalTools">
+        </activity>
+
+        <activity
             android:name=".PrePlannedRouteActivity"
             android:label="Pre-Route Prediction"
             android:parentActivityName=".MainActivity">
