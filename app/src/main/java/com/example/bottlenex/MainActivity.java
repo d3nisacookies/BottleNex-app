@@ -985,8 +985,10 @@ public class MainActivity extends AppCompatActivity implements
             startActivityForResult(intent, REQUEST_CODE_BOOKMARK);
         });
 
-        binding.btnCar.setOnClickListener(v ->
-                Toast.makeText(this, "Car clicked", Toast.LENGTH_SHORT).show());
+        binding.btnCar.setOnClickListener(v -> {
+            Intent intent = new Intent(MainActivity.this, PrePlannedRouteActivity.class);
+            startActivity(intent);
+        });
 
         binding.btnFavorite.setOnClickListener(v -> {
             // Check if we have a location selected (either from search or map tap)

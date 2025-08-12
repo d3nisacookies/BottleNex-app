@@ -99,6 +99,12 @@
             android:parentActivityName=".PersonalTools">
         </activity>
 
+        <activity
+            android:name=".PrePlannedRouteActivity"
+            android:label="Pre-Route Prediction"
+            android:parentActivityName=".MainActivity">
+        </activity>
+
         <!-- FileProvider for sharing images with Firebase Storage -->
         <provider
             android:name="androidx.core.content.FileProvider"
