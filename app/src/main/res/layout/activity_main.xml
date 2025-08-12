@@ -116,6 +116,8 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent" />
 
+
+
     <!-- Modern Map Controls with card styling -->
     <LinearLayout
         android:id="@+id/mapControls"
@@ -227,6 +229,32 @@
                 android:text="Cancel"
                 android:textAppearance="@style/TextAppearance.BottleNex.Button"
                 android:visibility="gone" />
+        </LinearLayout>
+
+        <!-- Live Traffic Button Row -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:orientation="horizontal">
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnLiveTraffic"
+                style="@style/Widget.BottleNex.Button.OutlinedButton"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="6dp"
+                android:layout_marginEnd="6dp"
+                android:layout_weight="1"
+                android:text="Live Traffic"
+                android:textSize="11sp"
+                android:minHeight="36dp"
+                android:maxLines="2"
+                android:ellipsize="end"
+                android:gravity="center"
+                android:paddingTop="4dp"
+                android:paddingBottom="4dp"
+                android:contentDescription="Live Traffic Toggle" />
         </LinearLayout>
 
         <!-- Traffic Prediction Buttons -->
@@ -397,6 +425,8 @@
                 android:src="@drawable/dehaze"
                 android:contentDescription="Personal Tools"
                 android:background="@android:color/transparent" />
+
+            
 
 
 

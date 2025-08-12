@@ -67,6 +67,7 @@ public class MapManager {
     private LocationCallback locationCallback;
     private NavigationOverlay navigationOverlay;
     private TrafficOverlay trafficOverlay;
+    private LiveTrafficOverlay liveTrafficOverlay;
     private final List<Marker> markers = new ArrayList<>();
     private OnMapClickListener onMapClickListener;
     private OnLocationUpdateListener onLocationUpdateListener;
@@ -138,6 +139,11 @@ public class MapManager {
         trafficOverlay = new TrafficOverlay(context, mapView);
         mapView.getOverlays().add(trafficOverlay);
         Log.d(TAG, "Traffic overlay added to map. Total overlays: " + mapView.getOverlays().size());
+        
+        // Setup live traffic overlay
+        liveTrafficOverlay = new LiveTrafficOverlay();
+        mapView.getOverlays().add(liveTrafficOverlay);
+        Log.d(TAG, "Live traffic overlay added to map. Total overlays: " + mapView.getOverlays().size());
             
         } catch (Exception e) {
             Log.e(TAG, "Error setting up map", e);
@@ -678,6 +684,39 @@ public class MapManager {
     public void setCustomTrafficTime(Calendar customTime) {
         if (trafficOverlay != null) {
             trafficOverlay.setCustomTrafficTime(customTime);
+        }
+    }
+    
+    // Live Traffic Overlay Methods
+    public void showLiveTrafficOverlay(boolean show) {
+        Log.d(TAG, "showLiveTrafficOverlay called with show=" + show + ", liveTrafficOverlay null=" + (liveTrafficOverlay == null));
+        if (liveTrafficOverlay != null) {
+            liveTrafficOverlay.setVisible(show);
+            if (mapView != null) {
+                mapView.invalidate();
+            }
+            Log.d(TAG, "Live traffic overlay visibility set to: " + show);
+        } else {
+            Log.w(TAG, "Live traffic overlay is null, cannot set visibility");
+        }
+    }
+    
+    public void setLiveTrafficRoutes(List<LiveTrafficManager.TrafficRoute> routes) {
+        if (liveTrafficOverlay != null) {
+            liveTrafficOverlay.setTrafficRoutes(routes);
+            if (mapView != null) {
+                mapView.invalidate();
+            }
+            Log.d(TAG, "Live traffic routes set: " + (routes != null ? routes.size() : 0) + " routes");
+        }
+    }
+    
+    public void updateLiveTrafficLevels(LiveTrafficManager liveTrafficManager) {
+        if (liveTrafficOverlay != null) {
+            liveTrafficOverlay.updateTrafficLevels(liveTrafficManager);
+            if (mapView != null) {
+                mapView.invalidate();
+            }
         }
     }
 

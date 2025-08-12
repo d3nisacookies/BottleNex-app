@@ -173,6 +173,10 @@ public class MainActivity extends AppCompatActivity implements
     private boolean showTrafficOverlay = false;
     private Handler trafficUpdateHandler = new Handler();
     private Runnable trafficUpdateRunnable;
+    
+    // Live traffic variables
+    private boolean showLiveTraffic = false;
+    private com.example.bottlenex.map.LiveTrafficManager liveTrafficManager;
     private Calendar selectedTrafficTime = null; // Store user-selected time for traffic prediction
 
     private void saveStarred(String name, double lat, double lon) {
@@ -1090,6 +1094,11 @@ public class MainActivity extends AppCompatActivity implements
                 Intent intent = new Intent(MainActivity.this, PrePlannedRouteActivity.class);
                 startActivity(intent);
             });
+        });
+
+        // Live Traffic button
+        binding.btnLiveTraffic.setOnClickListener(v -> {
+            toggleLiveTraffic();
         });
 
         binding.btnFavorite.setOnClickListener(v -> {
@@ -2476,6 +2485,73 @@ public class MainActivity extends AppCompatActivity implements
         if (trafficUpdateRunnable != null) {
             trafficUpdateHandler.removeCallbacks(trafficUpdateRunnable);
         }
+    }
+
+    // Live Traffic Methods
+    private void toggleLiveTraffic() {
+        Log.d("LiveTraffic", "toggleLiveTraffic called, current state: " + showLiveTraffic);
+        
+        if (!showLiveTraffic) {
+            // Enable live traffic
+            showLiveTraffic = true;
+            binding.btnLiveTraffic.setText("Live Traffic ON");
+            binding.btnLiveTraffic.setTextColor(getResources().getColor(android.R.color.white));
+            binding.btnLiveTraffic.setBackgroundColor(getResources().getColor(android.R.color.holo_blue_dark));
+            enableLiveTraffic();
+        } else {
+            // Disable live traffic
+            showLiveTraffic = false;
+            binding.btnLiveTraffic.setText("Live Traffic");
+            binding.btnLiveTraffic.setTextColor(getResources().getColor(android.R.color.holo_blue_dark));
+            binding.btnLiveTraffic.setBackgroundColor(getResources().getColor(android.R.color.white));
+            disableLiveTraffic();
+        }
+    }
+    
+    private void enableLiveTraffic() {
+        Log.d("LiveTraffic", "Enabling live traffic overlay");
+        
+        // Initialize LiveTrafficManager if not already done
+        if (liveTrafficManager == null) {
+            // Use the same API key as other routing functionality
+            String apiKey = "eyJvcmciOiI1YjNjZTM1OTc4NTExMTAwMDFjZjYyNDgiLCJpZCI6ImE3NmQzMjQwZWU4MzRjYWFiNTllOWI0MWM2MmE5ODc3IiwiaCI6Im11cm11cjY0In0=";
+            liveTrafficManager = new com.example.bottlenex.map.LiveTrafficManager(this, apiKey);
+        }
+        
+        // Generate route paths and then display traffic
+        liveTrafficManager.generateRoutePathsAsync(() -> {
+            runOnUiThread(() -> {
+                liveTrafficManager.updateTrafficLevels();
+                displayLiveTrafficOnMap();
+                Toast.makeText(this, "Live Traffic enabled", Toast.LENGTH_SHORT).show();
+            });
+        });
+    }
+    
+    private void disableLiveTraffic() {
+        Log.d("LiveTraffic", "Disabling live traffic overlay");
+        clearLiveTrafficFromMap();
+        Toast.makeText(this, "Live Traffic disabled", Toast.LENGTH_SHORT).show();
+    }
+    
+    private void displayLiveTrafficOnMap() {
+        if (liveTrafficManager == null) return;
+        
+        Log.d("LiveTraffic", "Displaying live traffic on map");
+        
+        // Get traffic routes from LiveTrafficManager
+        List<com.example.bottlenex.map.LiveTrafficManager.TrafficRoute> routes = liveTrafficManager.getTrafficRoutes();
+        
+        // Set the routes in MapManager
+        mapManager.setLiveTrafficRoutes(routes);
+        mapManager.showLiveTrafficOverlay(true);
+        
+        Log.d("LiveTraffic", "Live traffic displayed with " + routes.size() + " routes");
+    }
+    
+    private void clearLiveTrafficFromMap() {
+        Log.d("LiveTraffic", "Clearing live traffic from map");
+        mapManager.showLiveTrafficOverlay(false);
     }
 
     private String originalLocationInfo = ""; // Store original location info
