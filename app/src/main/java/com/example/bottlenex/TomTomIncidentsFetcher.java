@@ -69,7 +69,10 @@ public class TomTomIncidentsFetcher {
             @Override
             public void onFailure(Call call, IOException e) {
                 Log.e("TomTomIncidents", "API request failed: " + e.getMessage());
-                postResult(new ArrayList<>());
+                List<Incident> incidents = new ArrayList<>();
+                // Even if API fails, add test incident for testing
+                addTestIncident(incidents, lat, lon);
+                postResult(incidents);
             }
 
             @Override
@@ -87,6 +90,8 @@ public class TomTomIncidentsFetcher {
                     Log.e("TomTomIncidents", "API response not successful: " + response.code());
                     String errorBody = response.body() != null ? response.body().string() : "No error body";
                     Log.e("TomTomIncidents", "Error response: " + errorBody);
+                    // Even if API fails, add test incident for testing
+                    addTestIncident(incidents, lat, lon);
                     postResult(incidents);
                     return;
                 }
@@ -130,10 +135,16 @@ public class TomTomIncidentsFetcher {
                         
                         incidents.add(new Incident(ilat, ilon, type, description, distanceMeters));
                     }
-                    Log.d("TomTomIncidents", "Found " + incidents.size() + " incidents.");
+                    
+                    // Add hardcoded test incident for road closure testing
+                    addTestIncident(incidents, lat, lon);
+                    
+                    Log.d("TomTomIncidents", "Found " + incidents.size() + " incidents (including test incident).");
                     postResult(incidents);
                 } catch (Exception e) {
                     Log.e("TomTomIncidents", "Error parsing response: " + e.getMessage());
+                    // Even if parsing fails, add test incident for testing
+                    addTestIncident(incidents, lat, lon);
                     postResult(incidents);
                 }
             }
@@ -164,10 +175,39 @@ public class TomTomIncidentsFetcher {
                 return "Planned Event";
             case "roadhazard":
                 return "Road Hazard";
+            case "roadclosure":
+                return "Road Closure";
             case "weather":
                 return "Weather Related";
             default:
                 return "Traffic Incident";
         }
+    }
+    
+    /**
+     * Adds a hardcoded test incident for testing road incident alerts
+     */
+    private static void addTestIncident(List<Incident> incidents, double userLat, double userLon) {
+        // Test incident coordinates: 1.374053, 103.695164
+        double testLat = 1.374053;
+        double testLon = 103.695164;
+        
+        // Calculate distance from user location
+        float[] results = new float[1];
+        android.location.Location.distanceBetween(userLat, userLon, testLat, testLon, results);
+        int distanceMeters = (int) results[0];
+        
+        // Create test incident
+        Incident testIncident = new Incident(
+            testLat,
+            testLon,
+            "roadclosure", // type
+            "Road Closure", // description
+            distanceMeters
+        );
+        
+        incidents.add(testIncident);
+        Log.d("TomTomIncidents", "Added test road closure incident at " + testLat + ", " + testLon + 
+              " (distance: " + distanceMeters + "m from user)");
     }
 } 
