@@ -1096,11 +1096,10 @@ public class MainActivity extends AppCompatActivity implements
             });
         });
 
-        // Live Traffic button - navigate back to MainActivity (refresh)
+        // Live Traffic button - toggle live traffic overlay
         binding.btnLiveTraffic.setOnClickListener(v -> {
-            Intent intent = new Intent(this, MainActivity.class);
-            intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
-            startActivity(intent);
+            Log.d("LiveTraffic", "Live Traffic button clicked!");
+            toggleLiveTraffic();
         });
 
         binding.btnFavorite.setOnClickListener(v -> {
@@ -2493,6 +2492,9 @@ public class MainActivity extends AppCompatActivity implements
     private void toggleLiveTraffic() {
         Log.d("LiveTraffic", "toggleLiveTraffic called, current state: " + showLiveTraffic);
         
+        // Show immediate feedback to user
+        Toast.makeText(this, "Processing Live Traffic request...", Toast.LENGTH_SHORT).show();
+        
         if (!showLiveTraffic) {
             // Enable live traffic
             showLiveTraffic = true;
@@ -2515,17 +2517,27 @@ public class MainActivity extends AppCompatActivity implements
         
         // Initialize LiveTrafficManager if not already done
         if (liveTrafficManager == null) {
+            Log.d("LiveTraffic", "Initializing LiveTrafficManager");
             // Use the same API key as other routing functionality
             String apiKey = "eyJvcmciOiI1YjNjZTM1OTc4NTExMTAwMDFjZjYyNDgiLCJpZCI6ImE3NmQzMjQwZWU4MzRjYWFiNTllOWI0MWM2MmE5ODc3IiwiaCI6Im11cm11cjY0In0=";
             liveTrafficManager = new com.example.bottlenex.map.LiveTrafficManager(this, apiKey);
         }
         
+        // Show loading message
+        Toast.makeText(this, "Generating traffic routes...", Toast.LENGTH_SHORT).show();
+        
         // Generate route paths and then display traffic
         liveTrafficManager.generateRoutePathsAsync(() -> {
+            Log.d("LiveTraffic", "Route generation completed, updating UI");
             runOnUiThread(() -> {
-                liveTrafficManager.updateTrafficLevels();
-                displayLiveTrafficOnMap();
-                Toast.makeText(this, "Live Traffic enabled", Toast.LENGTH_SHORT).show();
+                try {
+                    liveTrafficManager.updateTrafficLevels();
+                    displayLiveTrafficOnMap();
+                    Toast.makeText(this, "Live Traffic enabled", Toast.LENGTH_SHORT).show();
+                } catch (Exception e) {
+                    Log.e("LiveTraffic", "Error enabling live traffic", e);
+                    Toast.makeText(this, "Error enabling Live Traffic: " + e.getMessage(), Toast.LENGTH_LONG).show();
+                }
             });
         });
     }
@@ -2537,18 +2549,39 @@ public class MainActivity extends AppCompatActivity implements
     }
     
     private void displayLiveTrafficOnMap() {
-        if (liveTrafficManager == null) return;
+        if (liveTrafficManager == null) {
+            Log.e("LiveTraffic", "LiveTrafficManager is null, cannot display traffic");
+            return;
+        }
         
         Log.d("LiveTraffic", "Displaying live traffic on map");
         
         // Get traffic routes from LiveTrafficManager
         List<com.example.bottlenex.map.LiveTrafficManager.TrafficRoute> routes = liveTrafficManager.getTrafficRoutes();
+        Log.d("LiveTraffic", "Retrieved " + (routes != null ? routes.size() : 0) + " routes from LiveTrafficManager");
         
-        // Set the routes in MapManager
-        mapManager.setLiveTrafficRoutes(routes);
-        mapManager.showLiveTrafficOverlay(true);
-        
-        Log.d("LiveTraffic", "Live traffic displayed with " + routes.size() + " routes");
+        if (routes != null && !routes.isEmpty()) {
+            // Count routes with actual route points
+            int routesWithPoints = 0;
+            for (com.example.bottlenex.map.LiveTrafficManager.TrafficRoute route : routes) {
+                if (route.routePoints != null && !route.routePoints.isEmpty()) {
+                    routesWithPoints++;
+                    Log.d("LiveTraffic", "Route " + route.name + " has " + route.routePoints.size() + " points, traffic level: " + route.currentTrafficLevel);
+                } else {
+                    Log.w("LiveTraffic", "Route " + route.name + " has no route points");
+                }
+            }
+            Log.d("LiveTraffic", routesWithPoints + " out of " + routes.size() + " routes have route points");
+            
+            // Set the routes in MapManager
+            mapManager.setLiveTrafficRoutes(routes);
+            mapManager.showLiveTrafficOverlay(true);
+            
+            Log.d("LiveTraffic", "Live traffic displayed with " + routes.size() + " routes");
+        } else {
+            Log.w("LiveTraffic", "No routes available to display");
+            Toast.makeText(this, "No traffic routes available", Toast.LENGTH_SHORT).show();
+        }
     }
     
     private void clearLiveTrafficFromMap() {
