@@ -32,7 +32,8 @@ public class OSMSpeedCameraFetcher {
         void onSpeedCamerasResult(List<SpeedCamera> cameras);
     }
 
-    private static final String OVERPASS_URL = "https://overpass-api.de/api/interpreter";
+    // Using alternative Overpass API server due to overpass-api.de connectivity issues
+    private static final String OVERPASS_URL = "https://overpass.kumi.systems/api/interpreter";
     private static final OkHttpClient client = new OkHttpClient();
 
     public static void fetchSpeedCameras(double lat, double lon, double radiusKm, SpeedCameraCallback callback) {
