@@ -99,3 +99,27 @@
 # Firebase Crashlytics
 -keep class com.google.firebase.crashlytics.** { *; }
 -keepclassmembers class com.google.firebase.crashlytics.** { *; }
+
+# TensorFlow Lite
+-keep class org.tensorflow.lite.** { *; }
+-keep class org.tensorflow.lite.gpu.** { *; }
+-keep class org.tensorflow.lite.support.** { *; }
+-dontwarn org.tensorflow.lite.**
+-dontwarn org.tensorflow.lite.gpu.**
+-dontwarn org.tensorflow.lite.support.**
+
+# Keep TensorFlow Lite GPU delegate classes
+-keep class org.tensorflow.lite.gpu.GpuDelegate { *; }
+-keep class org.tensorflow.lite.gpu.GpuDelegateFactory { *; }
+-keep class org.tensorflow.lite.gpu.GpuDelegateFactory$Options { *; }
+-keep class org.tensorflow.lite.gpu.GpuDelegateFactory$Options$GpuBackend { *; }
+
+# Keep TensorFlow Lite model classes
+-keep class org.tensorflow.lite.Interpreter { *; }
+-keep class org.tensorflow.lite.InterpreterApi { *; }
+-keep class org.tensorflow.lite.Tensor { *; }
+
+# Keep native methods
+-keepclasseswithmembernames class * {
+    native <methods>;
+}
