@@ -1296,7 +1296,12 @@ public class MainActivity extends AppCompatActivity implements
         // Bottleneck summary button
         binding.btnBottleneckSummary.setOnClickListener(v -> {
             UserTypeChecker.checkPremiumAccess(this, "Traffic Bottleneck Summary", () -> {
-                showBottleneckSummary();
+                // Check if summary is already visible - toggle it
+                if (binding.bottleneckSummaryPanel.getVisibility() == View.VISIBLE) {
+                    hideBottleneckSummary();
+                } else {
+                    showBottleneckSummary();
+                }
             });
         });
 
@@ -2626,6 +2631,15 @@ public class MainActivity extends AppCompatActivity implements
     private TensorFlowTrafficPredictor mlPredictor; // ML-based traffic predictor
 
     private void showTrafficPredictionForRoute() {
+        Log.d("TrafficAnalysis", "showTrafficPredictionForRoute called");
+        
+        // Add safety checks
+        if (binding == null || binding.locationInfo == null) {
+            Log.e("TrafficAnalysis", "Binding or locationInfo is null");
+            Toast.makeText(this, "Error: UI not initialized", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
         if (currentRouteData == null || currentRouteData.routePoints == null) {
             Toast.makeText(this, "No route selected", Toast.LENGTH_SHORT).show();
             return;
@@ -2640,7 +2654,7 @@ public class MainActivity extends AppCompatActivity implements
         }
 
         // Store original location info if not already stored
-        if (originalLocationInfo.isEmpty()) {
+        if (originalLocationInfo == null || originalLocationInfo.isEmpty()) {
             originalLocationInfo = binding.locationInfo.getText().toString();
         }
 
@@ -2681,10 +2695,17 @@ public class MainActivity extends AppCompatActivity implements
 
         // Show a brief toast to confirm the action
         Toast.makeText(this, "Traffic analysis displayed", Toast.LENGTH_SHORT).show();
+        Log.d("TrafficAnalysis", "Traffic analysis completed successfully");
     }
 
     private void restoreOriginalLocationInfo() {
-        if (!originalLocationInfo.isEmpty()) {
+        // Add safety checks
+        if (binding == null || binding.locationInfo == null) {
+            Log.e("TrafficAnalysis", "Binding or locationInfo is null in restoreOriginalLocationInfo");
+            return;
+        }
+
+        if (originalLocationInfo != null && !originalLocationInfo.isEmpty()) {
             binding.locationInfo.setText(originalLocationInfo);
             originalLocationInfo = ""; // Clear stored info
         }
