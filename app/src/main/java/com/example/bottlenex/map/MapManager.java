@@ -30,6 +30,8 @@ import org.osmdroid.views.overlay.mylocation.MyLocationNewOverlay;
 import org.osmdroid.views.overlay.Polyline;
 
 import com.example.bottlenex.routing.RoutePlanner;
+import com.example.bottlenex.ml.TrafficBottleneckIdentifier;
+import com.example.bottlenex.map.BottleneckOverlay;
 import com.google.android.gms.location.FusedLocationProviderClient;
 import com.google.android.gms.location.LocationCallback;
 import com.google.android.gms.location.LocationRequest;
@@ -47,7 +49,7 @@ import javax.inject.Singleton;
 
 @Singleton
 public class MapManager {
-    
+
     private static final String TAG = "MapManager";
     private static final int DEFAULT_ZOOM = 18; // Increased from 17 to 18 for even better default zoom
     private static final double DEFAULT_LAT = 1.3521; // SINGAPORE
@@ -68,21 +70,22 @@ public class MapManager {
     private NavigationOverlay navigationOverlay;
     private TrafficOverlay trafficOverlay;
     private LiveTrafficOverlay liveTrafficOverlay;
+    private BottleneckOverlay bottleneckOverlay;
     private final List<Marker> markers = new ArrayList<>();
     private OnMapClickListener onMapClickListener;
     private OnLocationUpdateListener onLocationUpdateListener;
-    
+
     // Auto-follow functionality
     private boolean isAutoFollowEnabled = false; // Only enabled during navigation
     private boolean isNavigating = false;
     private boolean hasInitialLocation = false; // Track if we've centered on initial location
     private long lastManualInteraction = 0;
     private static final long AUTO_FOLLOW_DELAY = 7000; // 7 seconds - longer pause for better user experience
-    
+
     // Movement detection for auto-follow
     private Location previousLocation = null;
     private static final float MOVEMENT_THRESHOLD = 5.0f; // 5 meters - minimum distance to consider as movement
-    
+
     @Inject
     public MapManager(Context context) {
         this.context = context;
@@ -93,7 +96,7 @@ public class MapManager {
             Log.e(TAG, "Error initializing OSMDroid", e);
         }
     }
-    
+
     private void initializeOSMDroid() {
         try {
             // Set user agent to prevent getting banned from the OSM servers
@@ -102,54 +105,59 @@ public class MapManager {
             Log.e(TAG, "Error setting user agent", e);
         }
     }
-    
+
     public void setupMap(MapView mapView) {
         try {
             this.mapView = mapView;
-            
+
             if (mapView == null) {
                 Log.e(TAG, "MapView is null");
                 return;
             }
-            
+
             // Set tile source
             mapView.setTileSource(TileSourceFactory.MAPNIK);
-            
+
             // Enable multi-touch gestures
             mapView.setMultiTouchControls(true);
-            
+
             // Get map controller
             mapController = mapView.getController();
-            
+
             // Set initial position and zoom
             mapController.setZoom(DEFAULT_ZOOM);
             mapController.setCenter(new GeoPoint(DEFAULT_LAT, DEFAULT_LON));
-            
+
             // Setup location overlay
             setupLocationOverlay();
-            
+
             // Setup map click listener
             setupMapClickListener();
-            
-                    // Setup navigation overlay
-        navigationOverlay = new NavigationOverlay(context, mapView);
-        mapView.getOverlays().add(navigationOverlay);
-        
-        // Setup traffic overlay
-        trafficOverlay = new TrafficOverlay(context, mapView);
-        mapView.getOverlays().add(trafficOverlay);
-        Log.d(TAG, "Traffic overlay added to map. Total overlays: " + mapView.getOverlays().size());
-        
-        // Setup live traffic overlay
-        liveTrafficOverlay = new LiveTrafficOverlay();
-        mapView.getOverlays().add(liveTrafficOverlay);
-        Log.d(TAG, "Live traffic overlay added to map. Total overlays: " + mapView.getOverlays().size());
-            
+
+            // Setup navigation overlay
+            navigationOverlay = new NavigationOverlay(context, mapView);
+            mapView.getOverlays().add(navigationOverlay);
+
+            // Setup traffic overlay
+            trafficOverlay = new TrafficOverlay(context, mapView);
+            mapView.getOverlays().add(trafficOverlay);
+            Log.d(TAG, "Traffic overlay added to map. Total overlays: " + mapView.getOverlays().size());
+
+            // Setup live traffic overlay
+            liveTrafficOverlay = new LiveTrafficOverlay();
+            mapView.getOverlays().add(liveTrafficOverlay);
+            Log.d(TAG, "Live traffic overlay added to map. Total overlays: " + mapView.getOverlays().size());
+
+            // Setup bottleneck overlay
+            bottleneckOverlay = new BottleneckOverlay(context, mapView);
+            mapView.getOverlays().add(bottleneckOverlay);
+            Log.d(TAG, "Bottleneck overlay added to map. Total overlays: " + mapView.getOverlays().size());
+
         } catch (Exception e) {
             Log.e(TAG, "Error setting up map", e);
         }
     }
-    
+
     private void setupLocationOverlay() {
         try {
             myLocationOverlay = new MyLocationNewOverlay(new GpsMyLocationProvider(context), mapView);
@@ -173,7 +181,7 @@ public class MapManager {
             Log.e(TAG, "Error setting up location overlay", e);
         }
     }
-    
+
     private void setupMapClickListener() {
         try {
             mapView.getOverlays().add(new org.osmdroid.views.overlay.Overlay() {
@@ -223,12 +231,12 @@ public class MapManager {
 
                     if (lat != 0.0 && !(lat == 37.4220936 && lon == -122.083922)) {
                         lastKnownLocation = newLocation;
-                        
+
                         // Update navigation overlay with current location
                         if (navigationOverlay != null) {
                             navigationOverlay.updateCurrentLocation(newLocation);
                         }
-                        
+
                         // Movement-based auto-follow logic
                         if (isAutoFollowEnabled && isNavigating) {
                             // Auto-follow during active navigation
@@ -254,10 +262,10 @@ public class MapManager {
                                 }
                             }
                         }
-                        
+
                         // Update previous location for next comparison
                         previousLocation = newLocation;
-                        
+
                         if (onLocationUpdateListener != null) {
                             onLocationUpdateListener.onLocationUpdate(newLocation);
                         }
@@ -293,7 +301,7 @@ public class MapManager {
             Log.e(TAG, "Error zooming in", e);
         }
     }
-    
+
     public void zoomOut() {
         try {
             if (mapController != null) {
@@ -303,7 +311,7 @@ public class MapManager {
             Log.e(TAG, "Error zooming out", e);
         }
     }
-    
+
     public void resetToDefaultZoom() {
         try {
             if (mapController != null) {
@@ -314,7 +322,7 @@ public class MapManager {
             Log.e(TAG, "Error resetting to default zoom", e);
         }
     }
-    
+
     public void centerOnMyLocation() {
         try {
             if (myLocationOverlay != null && myLocationOverlay.getMyLocation() != null) {
@@ -324,7 +332,7 @@ public class MapManager {
             Log.e(TAG, "Error centering on location", e);
         }
     }
-    
+
     public void addMarker(GeoPoint point, String title) {
         try {
             if (mapView != null) {
@@ -340,7 +348,7 @@ public class MapManager {
             Log.e(TAG, "Error adding marker", e);
         }
     }
-    
+
     public void clearMarkers() {
         try {
             if (mapView != null) {
@@ -354,15 +362,15 @@ public class MapManager {
             Log.e(TAG, "Error clearing markers", e);
         }
     }
-    
+
     public void setOnMapClickListener(OnMapClickListener listener) {
         this.onMapClickListener = listener;
     }
-    
+
     public void setOnLocationUpdateListener(OnLocationUpdateListener listener) {
         this.onLocationUpdateListener = listener;
     }
-    
+
     public void onResume() {
         try {
             if (mapView != null) {
@@ -372,7 +380,7 @@ public class MapManager {
             Log.e(TAG, "Error resuming map", e);
         }
     }
-    
+
     public void onPause() {
         try {
             if (mapView != null) {
@@ -394,7 +402,7 @@ public class MapManager {
     public interface OnMapClickListener {
         void onMapClick(GeoPoint point);
     }
-    
+
     public interface OnLocationUpdateListener {
         void onLocationUpdate(Location location);
     }
@@ -404,7 +412,7 @@ public class MapManager {
             Log.d("DEBUG_LOCATION", "Returning stored last known location: " + lastKnownLocation);
             return lastKnownLocation;
         }
-        
+
         // Fallback: try to get from MyLocationNewOverlay if available
         if (myLocationOverlay != null && myLocationOverlay.getMyLocation() != null) {
             GeoPoint geoPoint = myLocationOverlay.getMyLocation();
@@ -415,15 +423,15 @@ public class MapManager {
             Log.d("DEBUG_LOCATION", "Fallback: returning location from overlay: " + overlayLocation);
             return overlayLocation;
         }
-        
+
         Log.d("DEBUG_LOCATION", "No location available from any source");
         return null;
     }
-    
+
     public boolean isLocationAvailable() {
         return getLastKnownLocation() != null;
     }
-    
+
     public boolean isLocationServicesEnabled() {
         if (myLocationOverlay != null) {
             return myLocationOverlay.isMyLocationEnabled();
@@ -523,11 +531,18 @@ public class MapManager {
     public void clearRoute() {
         try {
             clearAllRoutes();
-            
+
             // Also clear traffic overlay when route is cleared
             if (trafficOverlay != null) {
                 trafficOverlay.setTrafficOverlayVisible(false);
                 Log.d(TAG, "Traffic overlay cleared along with route");
+            }
+
+            // Also clear bottleneck overlay when route is cleared
+            if (bottleneckOverlay != null) {
+                bottleneckOverlay.setVisible(false);
+                bottleneckOverlay.clearBottlenecks();
+                Log.d(TAG, "Bottleneck overlay cleared along with route");
             }
         } catch (Exception e) {
             Log.e(TAG, "Error clearing route", e);
@@ -573,22 +588,22 @@ public class MapManager {
         }
         return false;
     }
-    
+
     // Auto-follow methods
     public void enableAutoFollow() {
         isAutoFollowEnabled = true;
         Log.d(TAG, "Auto-follow enabled");
     }
-    
+
     public void disableAutoFollow() {
         isAutoFollowEnabled = false;
         Log.d(TAG, "Auto-follow disabled");
     }
-    
+
     public boolean isAutoFollowEnabled() {
         return isAutoFollowEnabled;
     }
-    
+
     public void resetAutoFollowState() {
         isAutoFollowEnabled = false;
         hasInitialLocation = false;
@@ -596,26 +611,26 @@ public class MapManager {
         previousLocation = null; // Reset movement tracking
         Log.d(TAG, "Auto-follow state reset to initial state");
     }
-    
+
     public void onManualInteraction() {
         lastManualInteraction = System.currentTimeMillis();
         previousLocation = null; // Reset movement tracking to prevent immediate auto-follow
         Log.d(TAG, "Manual interaction detected, auto-follow paused and movement tracking reset");
     }
-    
+
     private void centerOnLocation(Location location) {
         if (mapController != null && location != null) {
             GeoPoint point = new GeoPoint(location.getLatitude(), location.getLongitude());
             mapController.animateTo(point);
         }
     }
-    
+
     public void centerOnDestination(GeoPoint destination) {
         if (mapController != null && destination != null) {
             // Temporarily pause auto-follow to show destination
             onManualInteraction(); // This pauses auto-follow for 7 seconds
             mapController.animateTo(destination);
-            
+
             // Auto-follow will resume automatically after 7 seconds
         }
     }
@@ -630,37 +645,37 @@ public class MapManager {
             Log.w(TAG, "Traffic overlay is null, cannot set visibility");
         }
     }
-    
+
     public void updateTrafficPredictions() {
         if (trafficOverlay != null) {
             trafficOverlay.updateTrafficPredictions();
         }
     }
-    
+
     public void forceRefreshTrafficOverlay() {
         if (trafficOverlay != null) {
             trafficOverlay.forceRefresh();
         }
     }
-    
+
     public String getTrafficLevelForLocation(GeoPoint location) {
         if (trafficOverlay != null) {
             return trafficOverlay.getTrafficLevelForLocation(location);
         }
         return "Low";
     }
-    
+
     public String getTrafficLevelForRoad(String roadName) {
         if (trafficOverlay != null) {
             return trafficOverlay.getTrafficLevelForRoad(roadName);
         }
         return "Low";
     }
-    
+
     public NavigationOverlay getNavigationOverlay() {
         return navigationOverlay;
     }
-    
+
     public void updateNavigationSteps(List<RoutePlanner.NavigationStep> navigationSteps) {
         if (navigationOverlay != null && navigationSteps != null) {
             Log.d("MapManager", "updateNavigationSteps: Setting " + navigationSteps.size() + " navigation steps");
@@ -673,11 +688,11 @@ public class MapManager {
             Log.w("MapManager", "updateNavigationSteps: navigationOverlay or navigationSteps is null");
         }
     }
-    
+
     public TrafficOverlay getTrafficOverlay() {
         return trafficOverlay;
     }
-    
+
     /**
      * Set custom time for traffic prediction
      */
@@ -686,7 +701,7 @@ public class MapManager {
             trafficOverlay.setCustomTrafficTime(customTime);
         }
     }
-    
+
     // Live Traffic Overlay Methods
     public void showLiveTrafficOverlay(boolean show) {
         Log.d(TAG, "showLiveTrafficOverlay called with show=" + show + ", liveTrafficOverlay null=" + (liveTrafficOverlay == null));
@@ -700,7 +715,7 @@ public class MapManager {
             Log.w(TAG, "Live traffic overlay is null, cannot set visibility");
         }
     }
-    
+
     public void setLiveTrafficRoutes(List<LiveTrafficManager.TrafficRoute> routes) {
         if (liveTrafficOverlay != null) {
             liveTrafficOverlay.setTrafficRoutes(routes);
@@ -710,7 +725,7 @@ public class MapManager {
             Log.d(TAG, "Live traffic routes set: " + (routes != null ? routes.size() : 0) + " routes");
         }
     }
-    
+
     public void updateLiveTrafficLevels(LiveTrafficManager liveTrafficManager) {
         if (liveTrafficOverlay != null) {
             liveTrafficOverlay.updateTrafficLevels(liveTrafficManager);
@@ -742,6 +757,44 @@ public class MapManager {
         double padLon = lonSpan * (paddingPercent / 100.0);
         BoundingBox bbox = new BoundingBox(maxLat + padLat, maxLon + padLon, minLat - padLat, minLon - padLon);
         mapView.zoomToBoundingBox(bbox, true);
+    }
+
+    // Bottleneck Overlay Methods
+    public void showBottleneckOverlay(boolean show) {
+        Log.d(TAG, "showBottleneckOverlay called with show=" + show + ", bottleneckOverlay null=" + (bottleneckOverlay == null));
+        if (bottleneckOverlay != null) {
+            bottleneckOverlay.setVisible(show);
+            if (mapView != null) {
+                mapView.invalidate();
+            }
+            Log.d(TAG, "Bottleneck overlay visibility set to: " + show);
+        } else {
+            Log.w(TAG, "Bottleneck overlay is null, cannot set visibility");
+        }
+    }
+
+    public void setBottlenecks(List<TrafficBottleneckIdentifier.TrafficBottleneck> bottlenecks) {
+        if (bottleneckOverlay != null) {
+            bottleneckOverlay.setBottlenecks(bottlenecks);
+            if (mapView != null) {
+                mapView.invalidate();
+            }
+            Log.d(TAG, "Bottlenecks set: " + (bottlenecks != null ? bottlenecks.size() : 0) + " bottlenecks");
+        }
+    }
+
+    public void clearBottlenecks() {
+        if (bottleneckOverlay != null) {
+            bottleneckOverlay.clearBottlenecks();
+            if (mapView != null) {
+                mapView.invalidate();
+            }
+            Log.d(TAG, "Bottlenecks cleared");
+        }
+    }
+
+    public BottleneckOverlay getBottleneckOverlay() {
+        return bottleneckOverlay;
     }
 
 }

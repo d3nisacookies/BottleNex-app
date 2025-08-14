@@ -1,5 +1,6 @@
 package com.example.bottlenex;
 
+
 //To commit
 
 import android.Manifest;
@@ -56,6 +57,7 @@ import java.util.Set;
 import com.example.bottlenex.OSMSpeedCameraFetcher;
 import com.example.bottlenex.RouteHistory;
 import com.example.bottlenex.ml.TensorFlowTrafficPredictor;
+import com.example.bottlenex.ml.TrafficBottleneckIdentifier;
 import android.view.View;
 import android.view.LayoutInflater;
 import android.widget.TextView;
@@ -68,6 +70,7 @@ import android.widget.ListView;
 import android.widget.ArrayAdapter;
 import android.os.Handler;
 import android.content.Context;
+import com.example.bottlenex.ml.TrafficBottleneckIdentifier;
 
 
 
@@ -97,6 +100,7 @@ public class MainActivity extends AppCompatActivity implements
     private FirebaseUser currentUser;
     private boolean hasAlertedSpeedLimit = false;
     private Integer currentSpeedLimit = null;
+    private String originalLocationInfo = null; // Store original location info for toggle
     private Set<String> alertedIncidentIds = new HashSet<>();
     private Set<String> alertedSpeedCameraIds = new HashSet<>();
     private boolean isNavigating = false;
@@ -173,7 +177,7 @@ public class MainActivity extends AppCompatActivity implements
     private boolean showTrafficOverlay = false;
     private Handler trafficUpdateHandler = new Handler();
     private Runnable trafficUpdateRunnable;
-    
+
     // Live traffic variables
     private boolean showLiveTraffic = false;
     private com.example.bottlenex.map.LiveTrafficManager liveTrafficManager;
@@ -392,10 +396,10 @@ public class MainActivity extends AppCompatActivity implements
     private void removeToGoMarker(String placeName) {
         Log.d("ToGoPlaces", "removeToGoMarker called for: " + placeName);
         Log.d("ToGoPlaces", "PlaceName hashCode: " + placeName.hashCode());
-        
+
         List<Overlay> overlays = binding.mapView.getOverlays();
         Log.d("ToGoPlaces", "Total overlays before removal: " + overlays.size());
-        
+
         int removedCount = 0;
         for (int i = overlays.size() - 1; i >= 0; i--) {
             Overlay overlay = overlays.get(i);
@@ -411,7 +415,7 @@ public class MainActivity extends AppCompatActivity implements
                 }
             }
         }
-        
+
         Log.d("ToGoPlaces", "Removed " + removedCount + " markers. Total overlays after removal: " + overlays.size());
         binding.mapView.invalidate();
     }
@@ -1281,6 +1285,23 @@ public class MainActivity extends AppCompatActivity implements
 
         // Alternative route button
         binding.btnAlternativeRoute.setOnClickListener(v -> showAlternativeRoutes());
+
+        // Bottleneck identification button
+        binding.btnBottleneck.setOnClickListener(v -> {
+            UserTypeChecker.checkPremiumAccess(this, "Traffic Bottleneck Identification", () -> {
+                identifyTrafficBottlenecks();
+            });
+        });
+
+        // Bottleneck summary button
+        binding.btnBottleneckSummary.setOnClickListener(v -> {
+            UserTypeChecker.checkPremiumAccess(this, "Traffic Bottleneck Summary", () -> {
+                showBottleneckSummary();
+            });
+        });
+
+        // Back button from summary
+        binding.btnBackFromSummary.setOnClickListener(v -> hideBottleneckSummary());
     }
 
     private void saveFavourite(String name, double lat, double lon) {
@@ -1554,19 +1575,19 @@ public class MainActivity extends AppCompatActivity implements
         if (isNavigating && selectedLocation != null) {
             float[] results = new float[1];
             Location.distanceBetween(
-                location.getLatitude(), location.getLongitude(),
-                selectedLocation.getLatitude(), selectedLocation.getLongitude(),
-                results
+                    location.getLatitude(), location.getLongitude(),
+                    selectedLocation.getLatitude(), selectedLocation.getLongitude(),
+                    results
             );
-            
+
             boolean isNearActualDestination = results[0] < 50; // Within 50 meters of actual destination
             Log.d("NavigationDebug", "Distance to actual destination: " + results[0] + "m, isNear: " + isNearActualDestination);
-            
+
             if (isNearActualDestination) {
                 Log.d("NavigationDebug", "Destination reached detected!");
                 Log.d("NavigationDebug", "Current location: " + location.getLatitude() + ", " + location.getLongitude());
                 Log.d("NavigationDebug", "Selected destination: " + selectedLocation.getLatitude() + ", " + selectedLocation.getLongitude());
-                
+
                 runOnUiThread(() -> {
                     Toast.makeText(this, "You have reached your destination!", Toast.LENGTH_LONG).show();
                     // Automatically finish the journey and clear everything
@@ -1835,6 +1856,7 @@ public class MainActivity extends AppCompatActivity implements
         binding.btnCancelRoute.setVisibility(View.VISIBLE);
         binding.btnNavigate.setVisibility(View.GONE);
         binding.trafficButtonsLayout.setVisibility(View.VISIBLE);
+        binding.bottleneckButtonLayout.setVisibility(View.VISIBLE);
     }
 
 
@@ -1898,6 +1920,10 @@ public class MainActivity extends AppCompatActivity implements
         // Clear the route from the map
         mapManager.clearRoute();
 
+        // Clear any displayed bottlenecks
+        mapManager.showBottleneckOverlay(false);
+        mapManager.clearBottlenecks();
+
         // Clear the selected location marker
         mapManager.clearMarkers();
 
@@ -1906,7 +1932,7 @@ public class MainActivity extends AppCompatActivity implements
         currentRouteData = null;
 
         // Clear stored traffic analysis info
-        originalLocationInfo = "";
+        originalLocationInfo = null;
 
         // Reset UI to initial state
         binding.locationInfo.setText("Tap on map to get location");
@@ -1915,6 +1941,8 @@ public class MainActivity extends AppCompatActivity implements
         binding.btnCancelRoute.setVisibility(View.GONE);
         binding.btnJourney.setVisibility(View.GONE);
         binding.trafficButtonsLayout.setVisibility(View.GONE);
+        binding.bottleneckButtonLayout.setVisibility(View.GONE);
+        binding.bottleneckSummaryPanel.setVisibility(View.GONE);
 
         // Clear search view
         if (binding.searchView != null) {
@@ -2134,6 +2162,10 @@ public class MainActivity extends AppCompatActivity implements
         // Clear the route from the map
         mapManager.clearRoute();
 
+        // Clear any displayed bottlenecks
+        mapManager.showBottleneckOverlay(false);
+        mapManager.clearBottlenecks();
+
         // Stop navigation if active
         if (isNavigating) {
             mapManager.stopNavigation();
@@ -2154,7 +2186,7 @@ public class MainActivity extends AppCompatActivity implements
         currentRouteData = null;
 
         // Clear stored traffic analysis info
-        originalLocationInfo = "";
+        originalLocationInfo = null;
 
         // Reset UI to initial state
         binding.locationInfo.setText("Tap on map to get location");
@@ -2164,6 +2196,8 @@ public class MainActivity extends AppCompatActivity implements
         binding.btnJourney.setVisibility(View.GONE);
         binding.tvJourneyState.setVisibility(View.GONE);
         binding.trafficButtonsLayout.setVisibility(View.GONE);
+        binding.bottleneckButtonLayout.setVisibility(View.GONE);
+        binding.bottleneckSummaryPanel.setVisibility(View.GONE);
 
         // Clear search view
         if (binding.searchView != null) {
@@ -2491,10 +2525,10 @@ public class MainActivity extends AppCompatActivity implements
     // Live Traffic Methods
     private void toggleLiveTraffic() {
         Log.d("LiveTraffic", "toggleLiveTraffic called, current state: " + showLiveTraffic);
-        
+
         // Show immediate feedback to user
         Toast.makeText(this, "Processing Live Traffic request...", Toast.LENGTH_SHORT).show();
-        
+
         if (!showLiveTraffic) {
             // Enable live traffic
             showLiveTraffic = true;
@@ -2511,10 +2545,10 @@ public class MainActivity extends AppCompatActivity implements
             disableLiveTraffic();
         }
     }
-    
+
     private void enableLiveTraffic() {
         Log.d("LiveTraffic", "Enabling live traffic overlay");
-        
+
         // Initialize LiveTrafficManager if not already done
         if (liveTrafficManager == null) {
             Log.d("LiveTraffic", "Initializing LiveTrafficManager");
@@ -2522,10 +2556,10 @@ public class MainActivity extends AppCompatActivity implements
             String apiKey = "eyJvcmciOiI1YjNjZTM1OTc4NTExMTAwMDFjZjYyNDgiLCJpZCI6ImE3NmQzMjQwZWU4MzRjYWFiNTllOWI0MWM2MmE5ODc3IiwiaCI6Im11cm11cjY0In0=";
             liveTrafficManager = new com.example.bottlenex.map.LiveTrafficManager(this, apiKey);
         }
-        
+
         // Show loading message
         Toast.makeText(this, "Generating traffic routes...", Toast.LENGTH_SHORT).show();
-        
+
         // Generate route paths and then display traffic
         liveTrafficManager.generateRoutePathsAsync(() -> {
             Log.d("LiveTraffic", "Route generation completed, updating UI");
@@ -2541,25 +2575,25 @@ public class MainActivity extends AppCompatActivity implements
             });
         });
     }
-    
+
     private void disableLiveTraffic() {
         Log.d("LiveTraffic", "Disabling live traffic overlay");
         clearLiveTrafficFromMap();
         Toast.makeText(this, "Live Traffic disabled", Toast.LENGTH_SHORT).show();
     }
-    
+
     private void displayLiveTrafficOnMap() {
         if (liveTrafficManager == null) {
             Log.e("LiveTraffic", "LiveTrafficManager is null, cannot display traffic");
             return;
         }
-        
+
         Log.d("LiveTraffic", "Displaying live traffic on map");
-        
+
         // Get traffic routes from LiveTrafficManager
         List<com.example.bottlenex.map.LiveTrafficManager.TrafficRoute> routes = liveTrafficManager.getTrafficRoutes();
         Log.d("LiveTraffic", "Retrieved " + (routes != null ? routes.size() : 0) + " routes from LiveTrafficManager");
-        
+
         if (routes != null && !routes.isEmpty()) {
             // Count routes with actual route points
             int routesWithPoints = 0;
@@ -2572,24 +2606,23 @@ public class MainActivity extends AppCompatActivity implements
                 }
             }
             Log.d("LiveTraffic", routesWithPoints + " out of " + routes.size() + " routes have route points");
-            
+
             // Set the routes in MapManager
             mapManager.setLiveTrafficRoutes(routes);
             mapManager.showLiveTrafficOverlay(true);
-            
+
             Log.d("LiveTraffic", "Live traffic displayed with " + routes.size() + " routes");
         } else {
             Log.w("LiveTraffic", "No routes available to display");
             Toast.makeText(this, "No traffic routes available", Toast.LENGTH_SHORT).show();
         }
     }
-    
+
     private void clearLiveTrafficFromMap() {
         Log.d("LiveTraffic", "Clearing live traffic from map");
         mapManager.showLiveTrafficOverlay(false);
     }
 
-    private String originalLocationInfo = ""; // Store original location info
     private TensorFlowTrafficPredictor mlPredictor; // ML-based traffic predictor
 
     private void showTrafficPredictionForRoute() {
@@ -3192,6 +3225,159 @@ public class MainActivity extends AppCompatActivity implements
                 });
     }
 
+    /**
+     * Identify top-k traffic bottlenecks and display them on the map
+     */
+    private void showBottleneckSummary() {
+        if (selectedLocation == null || currentRouteData == null || currentRouteData.routePoints == null) {
+            Toast.makeText(this, "Please select a destination and plan a route first", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        // Show loading message
+        Toast.makeText(this, "Generating bottleneck summary...", Toast.LENGTH_SHORT).show();
+
+        // Run bottleneck analysis in background thread
+        new Thread(() -> {
+            try {
+                // Create bottleneck identifier
+                TrafficBottleneckIdentifier bottleneckIdentifier = new TrafficBottleneckIdentifier(this);
+
+                // Set the current route for analysis
+                bottleneckIdentifier.setCurrentRoute(currentRouteData.routePoints);
+
+                // Build road network and analyze
+                bottleneckIdentifier.identifyTopKBottlenecks(5);
+
+                // Get the route-specific summary
+                String routeSummary = bottleneckIdentifier.getRouteBottleneckSummary();
+
+                // Update UI on main thread
+                runOnUiThread(() -> {
+                    if (routeSummary != null && !routeSummary.isEmpty()) {
+                        // Store current location info before showing summary
+                        originalLocationInfo = binding.locationInfo.getText().toString();
+
+                        // Build detailed summary content
+                        StringBuilder summaryInfo = new StringBuilder();
+                        summaryInfo.append("📊 ROUTE BOTTLENECK SUMMARY 📊\n");
+                        summaryInfo.append("==============================\n\n");
+                        summaryInfo.append(routeSummary);
+
+
+                        summaryInfo.append("💡 TIP: Tap 'Top-K Bottleneck' to see visual map overlay");
+
+                        // Update summary content and show panel
+                        binding.bottleneckSummaryContent.setText(summaryInfo.toString());
+                        binding.bottleneckSummaryPanel.setVisibility(View.VISIBLE);
+
+                        Toast.makeText(MainActivity.this, "Bottleneck summary displayed", Toast.LENGTH_SHORT).show();
+                    } else {
+                        Toast.makeText(MainActivity.this, "No bottleneck data available", Toast.LENGTH_SHORT).show();
+                    }
+                });
+
+            } catch (Exception e) {
+                Log.e("BottleneckSummary", "Error generating summary: " + e.getMessage(), e);
+                runOnUiThread(() -> {
+                    Toast.makeText(MainActivity.this, "Error generating summary: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                });
+            }
+        }).start();
+    }
+
+    private void hideBottleneckSummary() {
+        // Hide the summary panel
+        binding.bottleneckSummaryPanel.setVisibility(View.GONE);
+
+        // Restore original location info if available
+        if (originalLocationInfo != null) {
+            binding.locationInfo.setText(originalLocationInfo);
+        }
+
+        Toast.makeText(this, "Summary hidden", Toast.LENGTH_SHORT).show();
+    }
+
+    private void identifyTrafficBottlenecks() {
+        // Check if bottlenecks are already displayed
+        if (mapManager.getBottleneckOverlay() != null && mapManager.getBottleneckOverlay().isVisible()) {
+            // Hide bottlenecks
+            mapManager.showBottleneckOverlay(false);
+            mapManager.clearBottlenecks();
+
+            // Restore original location info
+            if (originalLocationInfo != null) {
+                binding.locationInfo.setText(originalLocationInfo);
+            } else if (currentRouteData != null) {
+                showEnhancedRouteSummary(currentRouteData);
+            } else {
+                binding.locationInfo.setText("Tap on map to get location");
+            }
+
+            Toast.makeText(this, "Bottlenecks hidden", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        if (selectedLocation == null || currentRouteData == null || currentRouteData.routePoints == null) {
+            Toast.makeText(this, "Please select a destination and plan a route first", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        // Show loading message
+        Toast.makeText(this, "Analyzing traffic bottlenecks...", Toast.LENGTH_SHORT).show();
+
+        // Run bottleneck identification in background thread
+        new Thread(() -> {
+            try {
+                // Create bottleneck identifier
+                TrafficBottleneckIdentifier bottleneckIdentifier = new TrafficBottleneckIdentifier(this);
+
+                // Set the current route for analysis
+                if (currentRouteData != null && currentRouteData.routePoints != null) {
+                    bottleneckIdentifier.setCurrentRoute(currentRouteData.routePoints);
+                } else {
+                    runOnUiThread(() -> {
+                        Toast.makeText(MainActivity.this, "No route available for analysis", Toast.LENGTH_SHORT).show();
+                    });
+                    return;
+                }
+
+                // Identify top-5 bottlenecks from current route
+                List<TrafficBottleneckIdentifier.TrafficBottleneck> bottlenecks =
+                        bottleneckIdentifier.identifyTopKBottlenecks(5);
+
+                // Update UI on main thread
+                runOnUiThread(() -> {
+                    if (bottlenecks != null && !bottlenecks.isEmpty()) {
+                        // Store current location info before showing bottlenecks
+                        originalLocationInfo = binding.locationInfo.getText().toString();
+
+                        // Display bottlenecks on the map
+                        mapManager.setBottlenecks(bottlenecks);
+                        mapManager.showBottleneckOverlay(true);
+
+                        // Keep the original location info (don't change it)
+                        // Just show the map overlay with bottlenecks
+
+                        Toast.makeText(MainActivity.this,
+                                "Bottlenecks displayed on map. Tap 'Top-K Bottleneck' again to hide", Toast.LENGTH_SHORT).show();
+
+                        Toast.makeText(MainActivity.this,
+                                "Identified " + bottlenecks.size() + " bottlenecks on current route", Toast.LENGTH_SHORT).show();
+                    } else {
+                        Toast.makeText(MainActivity.this, "No bottlenecks identified", Toast.LENGTH_SHORT).show();
+                    }
+                });
+
+            } catch (Exception e) {
+                Log.e("BottleneckAnalysis", "Error identifying bottlenecks: " + e.getMessage(), e);
+                runOnUiThread(() -> {
+                    Toast.makeText(MainActivity.this, "Error analyzing bottlenecks: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                });
+            }
+        }).start();
+    }
+
     // Show alt routes overlay
     private void showAltRouteChooserPanel() {
         View overlay = findViewById(R.id.altRouteOverlayCard);
@@ -3265,7 +3451,7 @@ public class MainActivity extends AppCompatActivity implements
         mapManager.selectMainRoute();
 
         updateRouteSummary(mainRouteData);
-        
+
         Toast.makeText(this, "Main route selected", Toast.LENGTH_SHORT).show();
     }
 
@@ -3276,7 +3462,7 @@ public class MainActivity extends AppCompatActivity implements
         mapManager.selectAlternativeRoute();
 
         updateRouteSummary(alternativeRouteData);
-        
+
         Toast.makeText(this, "Alternative route selected", Toast.LENGTH_SHORT).show();
     }
 

@@ -112,7 +112,7 @@
         android:layout_width="0dp"
         android:layout_height="0dp"
         app:layout_constraintTop_toBottomOf="@id/appBarLayout"
-        app:layout_constraintBottom_toTopOf="@id/bottomPanel"
+        app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent" />
 
@@ -318,6 +318,100 @@
                 android:paddingBottom="4dp" />
         </LinearLayout>
 
+        <!-- Bottleneck Button Row -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:orientation="horizontal"
+            android:visibility="gone"
+            android:id="@+id/bottleneckButtonLayout">
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnBottleneck"
+                style="@style/Widget.BottleNex.Button.OutlinedButton"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="6dp"
+                android:layout_marginEnd="3dp"
+                android:layout_weight="1"
+                android:text="Top-K Bottleneck"
+                android:textSize="11sp"
+                android:minHeight="36dp"
+                android:maxLines="2"
+                android:ellipsize="end"
+                android:gravity="center"
+                android:paddingTop="4dp"
+                android:paddingBottom="4dp" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnBottleneckSummary"
+                style="@style/Widget.BottleNex.Button.OutlinedButton"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="3dp"
+                android:layout_marginEnd="6dp"
+                android:layout_weight="1"
+                android:text="Summary"
+                android:textSize="11sp"
+                android:minHeight="36dp"
+                android:maxLines="2"
+                android:ellipsize="end"
+                android:gravity="center"
+                android:paddingTop="4dp"
+                android:paddingBottom="4dp" />
+        </LinearLayout>
+
+        <!-- Bottleneck Summary Panel (hidden by default) -->
+        <LinearLayout
+            android:id="@+id/bottleneckSummaryPanel"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:orientation="vertical"
+            android:visibility="gone"
+            android:background="@drawable/modern_card_background"
+            android:padding="12dp">
+
+            <!-- Summary Header with Back Button -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:layout_marginBottom="8dp">
+
+                <ImageButton
+                    android:id="@+id/btnBackFromSummary"
+                    android:layout_width="32dp"
+                    android:layout_height="32dp"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:src="@android:drawable/ic_menu_revert"
+                    android:contentDescription="Back to route info"
+                    android:layout_marginEnd="8dp" />
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="🚨 ROUTE TRAFFIC BOTTLENECKS 🚨"
+                    android:textAlignment="center"
+                    android:textStyle="bold"
+                    android:textSize="16sp"
+                    android:textColor="@color/black" />
+            </LinearLayout>
+
+            <!-- Summary Content -->
+            <TextView
+                android:id="@+id/bottleneckSummaryContent"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Loading bottleneck summary..."
+                android:textSize="14sp"
+                android:lineSpacingExtra="2dp"
+                android:textColor="@color/black" />
+        </LinearLayout>
+
         <!-- Compact Alt Route Chooser Row (side-by-side buttons) -->
         <LinearLayout
             android:id="@+id/altRouteChooserRow"
@@ -426,7 +520,7 @@
                 android:contentDescription="Personal Tools"
                 android:background="@android:color/transparent" />
 
-            
+
 
 
 
