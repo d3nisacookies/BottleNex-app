@@ -1295,7 +1295,7 @@ public class MainActivity extends AppCompatActivity implements
 
         // Bottleneck summary button
         binding.btnBottleneckSummary.setOnClickListener(v -> {
-            UserTypeChecker.checkPremiumAccess(this, "Traffic Bottleneck Summary", () -> {
+            UserTypeChecker.checkPremiumAccess(this, "Traffic Bottleneck Analysis", () -> {
                 // Check if summary is already visible - toggle it
                 if (binding.bottleneckSummaryPanel.getVisibility() == View.VISIBLE) {
                     hideBottleneckSummary();

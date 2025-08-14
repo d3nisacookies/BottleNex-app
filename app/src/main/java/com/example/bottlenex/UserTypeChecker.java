@@ -86,7 +86,9 @@ public class UserTypeChecker {
                 "• Congestion Prediction Visualization\n" +
                 "• Congestion Prediction Analysis\n" +
                 "• Historical Traffic Graph Data\n" +
-                "• Historical Traffic Heatmaps\n\n" +
+                "• Historical Traffic Heatmaps\n" +
+                "• Top-K Bottleneck Identification\n" +
+                "• Top-K Bottleneck Analysis\n\n" +
                 "Upgrade now to unlock all premium navigation features!";
         
         new AlertDialog.Builder(context)
